@@ -1,0 +1,59 @@
+# Dependencies
+/node_modules/
+/vendor/
+
+# Public & Uploaded Files
+/public/build/
+/public/hot/
+/public/storage
+/public/uploads/*
+!/public/uploads/.gitignore
+
+# Database & Certificates
+/database/*.sqlite
+/database/*.sqlite-journal
+/database/*.sqlite-wal
+/database/*.sqlite-shm
+!/database/database.sqlite.example
+/database/sertifikat/*
+!/database/sertifikat/.gitignore
+
+# Storage & Temporary Files
+/storage/*.key
+/storage/*.txt
+/storage/app/*
+!/storage/app/.gitignore
+/storage/backups/*
+!/storage/backups/.gitignore
+/storage/framework/cache/*
+!/storage/framework/cache/.gitignore
+/storage/framework/sessions/*
+!/storage/framework/sessions/.gitignore
+/storage/framework/testing/*
+!/storage/framework/testing/.gitignore
+/storage/framework/views/*
+!/storage/framework/views/.gitignore
+/storage/logs/*
+!/storage/logs/.gitignore
+
+# Environment & Secret Files
+.env
+.env.*
+!.env.example
+
+# Logs & Caches
+*.log
+.phpunit.result.cache
+/bootstrap/cache/*.php
+!/bootstrap/cache/.gitignore
+
+# IDE, Agent & OS System Files
+.DS_Store
+Thumbs.db
+/.idea/
+/.vscode/
+/.gemini/
+/.antigravity/
+/.agents/
+*.tmp
+*.swp
