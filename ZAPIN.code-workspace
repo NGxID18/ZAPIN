@@ -4,5 +4,10 @@
 		"path": "."
 	}
 ],
-  "settings": {}
+  "settings": {
+    "git.autofetch": false,
+    "git.autorefresh": true,
+    "git.autoStash": false,
+    "git.decorations.enabled": true
+  }
 }
