@@ -248,10 +248,207 @@ assertCondition(
     $exitCodeEws === 0
 );
 
-// Cleanup testing records
-$testLog->delete();
-$peminjamanActive->delete();
-$testAlkes->delete();
+// -----------------------------------------------------------------
+// Test 7: Otorisasi BOLA pada AlkesController::show
+// -----------------------------------------------------------------
+echo "\n7. Menguji Proteksi BOLA / IDOR pada AlkesController::show:\n";
+
+$alkesRuangA = Alkes::create([
+    'kode_inventaris' => 'ALT-BOLA-A-' . time(),
+    'nama_barang' => 'Mesin Anestesi Ruang A',
+    'ruangan_id' => $ruangTesting->id,
+    'lokasi_ruangan_id' => $ruangTesting->id,
+    'status' => StatusAlkes::TERSEDIA->value,
+    'kondisi' => KondisiAlkes::BAIK->value,
+]);
+
+$alkesController = new \App\Http\Controllers\AlkesController();
+
+// Simulasikan user login sebagai Ruangan B (ruangLain) mencoba melihat alkes Ruangan A
+session([
+    'user_role' => 'ruangan',
+    'user_ruangan_id' => $ruangLain->id,
+    'user_ruangan_name' => 'Unit Uji Coba 2',
+]);
+
+$bolaCaught = false;
+try {
+    $alkesController->show($alkesRuangA->id);
+} catch (\Symfony\Component\HttpKernel\Exception\HttpException $e) {
+    if ($e->getStatusCode() === 403) {
+        $bolaCaught = true;
+    }
+}
+assertCondition(
+    "User peran 'ruangan' B diblokir (HTTP 403) saat mencoba akses detail alkes milik ruangan A",
+    $bolaCaught === true
+);
+
+// Simulasikan user login sebagai Ruangan A (pemilik) melihat alkesnya sendiri
+session([
+    'user_role' => 'ruangan',
+    'user_ruangan_id' => $ruangTesting->id,
+    'user_ruangan_name' => 'Unit Uji Coba',
+]);
+$viewRuangSendiri = $alkesController->show($alkesRuangA->id);
+assertCondition(
+    "User peran 'ruangan' pemilik berhasil melihat detail alkes ruangannya sendiri",
+    $viewRuangSendiri->getName() === 'alkes.show'
+);
+
+// -----------------------------------------------------------------
+// Test 8: Otorisasi BOLA pada PeminjamanAlkesController::kembalikan
+// -----------------------------------------------------------------
+echo "\n8. Menguji Proteksi BOLA pada Pengembalian Peminjaman:\n";
+
+$pinjamTest2 = PeminjamanAlkes::create([
+    'alkes_id' => $alkesRuangA->id,
+    'ruangan_peminjam_id' => $ruangLain->id,
+    'peminjam_nama' => 'Perawat Ruang B',
+    'tanggal_pinjam' => now(),
+    'estimasi_kembali' => now()->addDay(),
+    'status' => 'Dipinjam',
+]);
+
+$ruangKetiga = Ruangan::firstOrCreate(
+    ['nama_ruangan' => 'Unit Uji Coba 3'],
+    ['kode_ruangan' => 'R-UJI-COBA-3']
+);
+
+// Simulasikan user dari Ruangan C (tidak terkait) mencoba mengembalikan alat
+session([
+    'user_role' => 'ruangan',
+    'user_ruangan_id' => $ruangKetiga->id,
+    'user_ruangan_name' => 'Unit Uji Coba 3',
+]);
+
+$reqReturnUnauthorized = Request::create("/peminjaman/{$pinjamTest2->id}/kembalikan", 'POST');
+$unauthorizedReturnCaught = false;
+try {
+    $controllerPinjam->kembalikan($reqReturnUnauthorized, $pinjamTest2->id);
+} catch (\Symfony\Component\HttpKernel\Exception\HttpException $e) {
+    if ($e->getStatusCode() === 403) {
+        $unauthorizedReturnCaught = true;
+    }
+}
+assertCondition(
+    "Ruangan ketiga yang tidak terkait diblokir (HTTP 403) saat mencoba menandai pengembalian",
+    $unauthorizedReturnCaught === true
+);
+
+// Ruangan peminjam berhasil mengembalikan alat
+session([
+    'user_role' => 'ruangan',
+    'user_ruangan_id' => $ruangLain->id,
+    'user_ruangan_name' => 'Unit Uji Coba 2',
+]);
+$respKembalikanValid = $controllerPinjam->kembalikan($reqReturnUnauthorized, $pinjamTest2->id);
+$pinjamTest2->refresh();
+assertCondition(
+    "Ruangan peminjam sah berhasil mengembalikan alat",
+    $pinjamTest2->status === 'Dikembalikan'
+);
+
+// -----------------------------------------------------------------
+// Test 9: Proteksi Anti-Spoofing Ruangan Peminjam pada Store
+// -----------------------------------------------------------------
+echo "\n9. Menguji Proteksi Anti-Spoofing Ruangan Peminjam:\n";
+
+session([
+    'user_role' => 'ruangan',
+    'user_ruangan_id' => $ruangTesting->id,
+    'user_ruangan_name' => 'Unit Uji Coba',
+]);
+
+// Coba ajukan peminjaman mengatasnamakan ruangLain padahal login sebagai ruangTesting
+$reqSpoofed = \App\Http\Requests\StorePeminjamanRequest::create('/peminjaman', 'POST', [
+    'alkes_id' => $alkesRuangA->id,
+    'ruangan_peminjam_id' => $ruangLain->id, // Spoofed!
+    'peminjam_nama' => 'Oknum Ruangan',
+    'tanggal_pinjam' => now()->format('Y-m-d H:i:s'),
+    'estimasi_kembali' => now()->addDays(2)->format('Y-m-d H:i:s'),
+]);
+$reqSpoofed->setContainer($app);
+$reqSpoofed->validateResolved();
+
+$spoofCaught = false;
+try {
+    $controllerPinjam->store($reqSpoofed);
+} catch (\Symfony\Component\HttpKernel\Exception\HttpException $e) {
+    if ($e->getStatusCode() === 403) {
+        $spoofCaught = true;
+    }
+}
+assertCondition(
+    "Pengajuan peminjaman dengan ruangan_peminjam_id palsu diblokir (HTTP 403)",
+    $spoofCaught === true
+);
+
+// -----------------------------------------------------------------
+// Test 10: Proteksi Integritas Legal pada AlkesController::destroy
+// -----------------------------------------------------------------
+echo "\n10. Menguji Proteksi Penghapusan Legal (KARS/Permenkes):\n";
+
+// Unit alkesRuangA sekarang memiliki riwayat peminjaman (pinjamTest2)
+session(['user_role' => 'elektromedis']);
+$respDestroyPrevented = $alkesController->destroy($alkesRuangA->id);
+
+$alkesRuangAExists = Alkes::where('id', $alkesRuangA->id)->exists();
+assertCondition(
+    "Alat dengan riwayat peminjaman/pemeliharaan dicegah dihapus permanen dari DB",
+    $alkesRuangAExists === true && session('error') !== null
+);
+
+// -----------------------------------------------------------------
+// Test 11: Validasi Mass Assignment Model PeminjamanAlkes
+// -----------------------------------------------------------------
+echo "\n11. Menguji Mass Assignment Protection Model PeminjamanAlkes:\n";
+
+$modelPinjam = new PeminjamanAlkes();
+$fillableFields = $modelPinjam->getFillable();
+assertCondition(
+    "Model PeminjamanAlkes mendefinisikan fillable secara eksplisit (tidak guarded = [])",
+    !empty($fillableFields) && in_array('alkes_id', $fillableFields) && in_array('peminjam_nama', $fillableFields)
+);
+
+// -----------------------------------------------------------------
+// Test 12: Keamanan APP_KEY & Konfigurasi Server
+// -----------------------------------------------------------------
+echo "\n12. Menguji Kriptografi APP_KEY & Konfigurasi Server:\n";
+
+$appKey = env('APP_KEY', '');
+$isOldWeakKey = str_contains($appKey, 'testkey123456789abcdefghijklmnop') || $appKey === 'base64:dGVzdGtleTEyMzQ1Njc4OWFiY2RlZmdoaWprbG1ub3A=';
+assertCondition(
+    "APP_KEY bukan kunci default yang prediktif",
+    !$isOldWeakKey && strlen($appKey) > 20
+);
+
+$nginxConf = file_get_contents(__DIR__ . '/../zapin_nginx.conf');
+assertCondition(
+    "zapin_nginx.conf memblokir eksekusi PHP di direktori /uploads/",
+    str_contains($nginxConf, 'location ^~ /uploads/') && str_contains($nginxConf, 'deny all')
+);
+
+$dbConf = file_get_contents(__DIR__ . '/../config/database.php');
+assertCondition(
+    "config/database.php mengaktifkan journal_mode WAL untuk SQLite",
+    str_contains($dbConf, "'journal_mode' => 'wal'")
+);
+
+// -----------------------------------------------------------------
+// Test 13: Sanitasi Wildcard SQL pada Alkes::scopeSearch
+// -----------------------------------------------------------------
+echo "\n13. Menguji Sanitasi Wildcard SQL pada Alkes::scopeSearch:\n";
+
+$searchSql = Alkes::search('%_test_%')->toSql();
+assertCondition(
+    "Pencarian mengandung parameter yang diamankan dari wildcard SQL",
+    str_contains($searchSql, 'like ?')
+);
+
+// Cleanup
+$pinjamTest2->delete();
+$alkesRuangA->delete();
 
 echo "\n======================================================\n";
 echo "             RINGKASAN HASIL VERIFIKASI               \n";

@@ -106,23 +106,26 @@ class Alkes extends Model
 
     public function scopeSearch($query, $search)
     {
-        return $query->where(function ($q) use ($search) {
-            $q->where('nama_barang', 'like', "%{$search}%")
-              ->orWhere('merk', 'like', "%{$search}%")
-              ->orWhere('tipe', 'like', "%{$search}%")
-              ->orWhere('nomor_seri', 'like', "%{$search}%")
-              ->orWhere('tahun_pengadaan', 'like', "%{$search}%")
-              ->orWhere('jumlah', 'like', "%{$search}%")
-              ->orWhere('lokasi_saat_ini_note', 'like', "%{$search}%")
-              ->orWhere('kondisi', 'like', "%{$search}%")
-              ->orWhere('aspak_status', 'like', "%{$search}%")
-              ->orWhere('keterangan', 'like', "%{$search}%")
-              ->orWhereHas('ruangan', function ($rq) use ($search) {
-                  $rq->where('nama_ruangan', 'like', "%{$search}%")
-                    ->orWhere('kode_ruangan', 'like', "%{$search}%");
+        $escaped = addcslashes($search, '%_');
+
+        return $query->where(function ($q) use ($escaped) {
+            $q->where('nama_barang', 'like', "%{$escaped}%")
+              ->orWhere('merk', 'like', "%{$escaped}%")
+              ->orWhere('tipe', 'like', "%{$escaped}%")
+              ->orWhere('nomor_seri', 'like', "%{$escaped}%")
+              ->orWhere('tahun_pengadaan', 'like', "%{$escaped}%")
+              ->orWhere('jumlah', 'like', "%{$escaped}%")
+              ->orWhere('lokasi_saat_ini_note', 'like', "%{$escaped}%")
+              ->orWhere('kondisi', 'like', "%{$escaped}%")
+              ->orWhere('aspak_status', 'like', "%{$escaped}%")
+              ->orWhere('keterangan', 'like', "%{$escaped}%")
+              ->orWhereHas('ruangan', function ($rq) use ($escaped) {
+                  $rq->where('nama_ruangan', 'like', "%{$escaped}%")
+                    ->orWhere('kode_ruangan', 'like', "%{$escaped}%");
               });
         });
     }
+
     public function scopeAccessibleByCurrentRole($query)
     {
         if (session('user_role') === 'ruangan' && session('user_ruangan_id')) {
@@ -140,8 +143,17 @@ class Alkes extends Model
         $year = date('Y');
         $basePrefix = "{$prefix}-{$year}-";
 
-        $count = (int) self::where('kode_inventaris', 'like', "{$basePrefix}%")->count();
-        $nextNum = $count + 1;
+        $maxExisting = self::where('kode_inventaris', 'like', "{$basePrefix}%")
+            ->orderBy('id', 'desc')
+            ->value('kode_inventaris');
+
+        $nextNum = 1;
+        if ($maxExisting && preg_match('/-(\d+)$/', $maxExisting, $matches)) {
+            $nextNum = ((int) $matches[1]) + 1;
+        } else {
+            $count = (int) self::where('kode_inventaris', 'like', "{$basePrefix}%")->count();
+            $nextNum = $count + 1;
+        }
 
         do {
             $candidate = $basePrefix . str_pad((string) $nextNum, 4, '0', STR_PAD_LEFT);

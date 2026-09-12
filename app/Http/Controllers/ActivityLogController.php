@@ -12,12 +12,12 @@ class ActivityLogController extends Controller
         $query = ActivityLog::query();
 
         if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('action', 'like', "%{$search}%")
-                  ->orWhere('description', 'like', "%{$search}%")
-                  ->orWhere('user_role', 'like', "%{$search}%")
-                  ->orWhere('ruangan_name', 'like', "%{$search}%");
+            $escaped = addcslashes(trim($request->search), '%_');
+            $query->where(function ($q) use ($escaped) {
+                $q->where('action', 'like', "%{$escaped}%")
+                  ->orWhere('description', 'like', "%{$escaped}%")
+                  ->orWhere('user_role', 'like', "%{$escaped}%")
+                  ->orWhere('ruangan_name', 'like', "%{$escaped}%");
             });
         }
 

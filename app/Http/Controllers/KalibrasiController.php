@@ -16,13 +16,13 @@ class KalibrasiController extends Controller
         $query = (clone $baseScope)->with(['ruangan', 'lokasiRuangan', 'nomenklatur']);
 
         if ($request->filled('search')) {
-            $search = trim($request->search);
-            $query->where(function ($q) use ($search) {
-                $q->where('nama_barang', 'like', "%{$search}%")
-                  ->orWhere('merk', 'like', "%{$search}%")
-                  ->orWhere('tipe', 'like', "%{$search}%")
-                  ->orWhere('nomor_seri', 'like', "%{$search}%")
-                  ->orWhere('kode_inventaris', 'like', "%{$search}%");
+            $escaped = addcslashes(trim($request->search), '%_');
+            $query->where(function ($q) use ($escaped) {
+                $q->where('nama_barang', 'like', "%{$escaped}%")
+                  ->orWhere('merk', 'like', "%{$escaped}%")
+                  ->orWhere('tipe', 'like', "%{$escaped}%")
+                  ->orWhere('nomor_seri', 'like', "%{$escaped}%")
+                  ->orWhere('kode_inventaris', 'like', "%{$escaped}%");
             });
         }
 

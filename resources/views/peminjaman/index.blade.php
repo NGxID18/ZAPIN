@@ -50,10 +50,19 @@
                             <td class="py-3.5 px-4 text-center">
                                 @if ($pinjam->status === 'Dipinjam')
                                     <span class="px-2.5 py-1 bg-sky-100 text-sky-800 border border-sky-300 rounded-lg text-xs font-bold inline-block mb-2">Dipinjam</span>
-                                    <form method="POST" action="{{ route('peminjaman.kembalikan', $pinjam->id) }}" onsubmit="return confirm('Kembalikan alat ini ke ruangan asal?')">
-                                        @csrf
-                                        <button type="submit" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white text-[11px] font-bold rounded-lg transition w-full">Kembalikan</button>
-                                    </form>
+                                    @php
+                                        $userRuangId = (int) session('user_ruangan_id');
+                                        $canReturn = session('user_role') === 'elektromedis' 
+                                            || (session('user_role') === 'ruangan' && ($userRuangId === (int)$pinjam->ruangan_peminjam_id || $userRuangId === (int)($pinjam->alkes->ruangan_id ?? 0)));
+                                    @endphp
+                                    @if ($canReturn)
+                                        <form method="POST" action="{{ route('peminjaman.kembalikan', $pinjam->id) }}" onsubmit="return confirm('Kembalikan alat ini ke ruangan asal?')">
+                                            @csrf
+                                            <button type="submit" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white text-[11px] font-bold rounded-lg transition w-full">Kembalikan</button>
+                                        </form>
+                                    @else
+                                        <div class="text-[11px] text-slate-400 font-semibold italic">Dalam Penggunaan</div>
+                                    @endif
                                 @else
                                     <span class="px-2.5 py-1 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg text-xs font-bold inline-block">Dikembalikan</span>
                                     <div class="text-[10px] text-slate-500 mt-1">{{ $pinjam->tanggal_dikembalikan ? $pinjam->tanggal_dikembalikan->format('d M Y, H:i') : '' }}</div>
@@ -97,11 +106,16 @@
             </div>
             <div>
                 <label class="block text-xs font-bold text-slate-700 mb-1">Ruangan Peminjam *</label>
-                <select name="ruangan_peminjam_id" required class="w-full px-4 py-2 border border-slate-300 rounded-xl text-sm">
-                    @foreach($ruanganList as $ruangan)
-                        <option value="{{ $ruangan->id }}">{{ $ruangan->nama_ruangan }}</option>
-                    @endforeach
-                </select>
+                @if (session('user_role') === 'ruangan' && session('user_ruangan_id'))
+                    <input type="hidden" name="ruangan_peminjam_id" value="{{ session('user_ruangan_id') }}">
+                    <input type="text" disabled value="{{ session('user_ruangan_name', 'Ruangan Saya') }}" class="w-full px-4 py-2 border border-slate-300 rounded-xl text-sm bg-slate-100 text-slate-700 font-bold">
+                @else
+                    <select name="ruangan_peminjam_id" required class="w-full px-4 py-2 border border-slate-300 rounded-xl text-sm">
+                        @foreach($ruanganList as $ruangan)
+                            <option value="{{ $ruangan->id }}">{{ $ruangan->nama_ruangan }}</option>
+                        @endforeach
+                    </select>
+                @endif
             </div>
             <div>
                 <label class="block text-xs font-bold text-slate-700 mb-1">Nama Peminjam *</label>

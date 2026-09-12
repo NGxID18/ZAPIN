@@ -24,6 +24,8 @@ class AuthController extends Controller
             'ruangan_id' => 'nullable|integer|exists:ruangan,id',
         ]);
 
+        $request->session()->regenerate();
+
         $role = $validated['role'];
 
         if ($role === 'elektromedis') {

@@ -193,7 +193,11 @@
                                             <i class="{{ $isImg ? 'ri-image-fill text-blue-600' : 'ri-file-pdf-fill text-rose-600' }} text-sm"></i> Dokumen Terbaru
                                         </a>
                                         @if (count($pdfHistory) > 1)
-                                            <button type="button" onclick="openPdfHistoryModal('{{ addslashes($item->nama_barang) }}', {{ json_encode($pdfHistory) }})" class="px-2.5 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200 rounded-lg text-[10px] font-extrabold transition">
+                                            <button type="button" 
+                                                data-nama="{{ $item->nama_barang }}" 
+                                                data-history='@json($pdfHistory)' 
+                                                onclick="openPdfHistoryModal(this.dataset.nama, JSON.parse(this.dataset.history || '[]'))" 
+                                                class="px-2.5 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200 rounded-lg text-[10px] font-extrabold transition">
                                                 <i class="ri-history-line"></i> Riwayat {{ count($pdfHistory) }} Tahun
                                             </button>
                                         @endif
@@ -215,13 +219,24 @@
                             <td class="py-3.5 px-4 text-center">
                                 <div class="flex items-center justify-center gap-1.5 flex-wrap">
                                     @if (session('user_role') === 'elektromedis')
-                                        <button type="button" onclick="openUpdateModal({{ $item->id }}, '{{ addslashes($item->nama_barang) }}', '{{ $tglTerakhir ? $tglTerakhir->format('Y-m-d') : '' }}', '{{ $tglBerikutnya ? $tglBerikutnya->format('Y-m-d') : '' }}')" class="px-3 py-1.5 bg-emerald-600 text-white hover:bg-emerald-700 rounded-xl font-bold text-xs transition flex items-center justify-center gap-1 shadow-xs">
+                                        <button type="button" 
+                                            data-id="{{ $item->id }}" 
+                                            data-nama="{{ $item->nama_barang }}" 
+                                            data-tgl-terakhir="{{ $tglTerakhir ? $tglTerakhir->format('Y-m-d') : '' }}" 
+                                            data-tgl-berikutnya="{{ $tglBerikutnya ? $tglBerikutnya->format('Y-m-d') : '' }}" 
+                                            onclick="openUpdateModal(this.dataset.id, this.dataset.nama, this.dataset.tglTerakhir, this.dataset.tglBerikutnya)" 
+                                            class="px-3 py-1.5 bg-emerald-600 text-white hover:bg-emerald-700 rounded-xl font-bold text-xs transition flex items-center justify-center gap-1 shadow-xs">
                                             <i class="ri-edit-box-line"></i> Update
                                         </button>
                                     @endif
 
                                     @if ($item->keterangan || !empty($pdfHistory))
-                                        <button type="button" onclick="openViewNoteModal('{{ addslashes($item->nama_barang) }}', '{{ addslashes($item->keterangan) }}', {{ json_encode($pdfHistory) }})" class="px-2.5 py-1.5 bg-amber-50 text-amber-800 hover:bg-amber-100 border border-amber-300 rounded-xl font-bold text-xs transition inline-flex items-center gap-1 shadow-xs" title="Lihat Detail & Riwayat Kalibrasi">
+                                        <button type="button" 
+                                            data-nama="{{ $item->nama_barang }}" 
+                                            data-keterangan="{{ $item->keterangan }}" 
+                                            data-history='@json($pdfHistory)' 
+                                            onclick="openViewNoteModal(this.dataset.nama, this.dataset.keterangan, JSON.parse(this.dataset.history || '[]'))" 
+                                            class="px-2.5 py-1.5 bg-amber-50 text-amber-800 hover:bg-amber-100 border border-amber-300 rounded-xl font-bold text-xs transition inline-flex items-center gap-1 shadow-xs" title="Lihat Detail & Riwayat Kalibrasi">
                                             <i class="ri-file-text-line text-amber-600"></i> Detail
                                         </button>
                                     @elseif (session('user_role') !== 'elektromedis')

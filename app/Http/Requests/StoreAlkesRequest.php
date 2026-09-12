@@ -26,7 +26,7 @@ class StoreAlkesRequest extends FormRequest
     {
         return [
             'nama_barang' => 'required|string|max:255',
-            'kode_inventaris' => 'nullable|string|max:100',
+            'kode_inventaris' => 'nullable|string|max:100|unique:alkes,kode_inventaris',
             'nomor_seri' => 'nullable|string|max:100',
             'nomenklatur_id' => 'nullable|exists:nomenklatur,id',
             'merk' => 'nullable|string|max:255',

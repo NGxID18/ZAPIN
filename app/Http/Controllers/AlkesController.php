@@ -62,7 +62,7 @@ class AlkesController extends Controller
         if (array_key_exists($sortBy, $allowedSorts)) {
             $query->orderBy($allowedSorts[$sortBy], $sortDir);
         } elseif ($sortBy === 'ruangan') {
-            $query->join('ruangan', 'alkes.ruangan_id', '=', 'ruangan.id')
+            $query->leftJoin('ruangan', 'alkes.ruangan_id', '=', 'ruangan.id')
                   ->orderBy('ruangan.nama_ruangan', $sortDir)
                   ->select('alkes.*');
         } else {
@@ -115,6 +115,14 @@ class AlkesController extends Controller
     {
         $alkes = Alkes::with(['nomenklatur', 'ruangan', 'lokasiRuangan', 'mutasi.ruanganAsal', 'mutasi.ruanganTujuan', 'logPemeliharaan'])->findOrFail($id);
 
+        // Otorisasi: Batasi peran ruangan agar hanya bisa melihat alkes milik/di ruangannya sendiri
+        if (session('user_role') === 'ruangan' && session('user_ruangan_id')) {
+            $userRuanganId = (int) session('user_ruangan_id');
+            if ($alkes->ruangan_id !== $userRuanganId && $alkes->lokasi_ruangan_id !== $userRuanganId) {
+                abort(403, 'Akses Ditolak: Anda tidak memiliki wewenang untuk melihat detail unit alat kesehatan ruangan lain.');
+            }
+        }
+
         return view('alkes.show', compact('alkes'));
     }
 
@@ -147,6 +155,11 @@ class AlkesController extends Controller
     public function destroy($id)
     {
         $alkes = Alkes::findOrFail($id);
+
+        // Kepatuhan Medis (KARS/Permenkes): Lindungi rekam jejak riwayat alat dari penghapusan permanen
+        if ($alkes->logPemeliharaan()->exists() || $alkes->mutasi()->exists() || $alkes->peminjaman()->exists()) {
+            return redirect()->back()->with('error', "Aset '{$alkes->nama_barang}' tidak dapat dihapus permanen karena memiliki rekam jejak legal pemeliharaan, mutasi, atau peminjaman. Untuk mengarsipkan aset, silakan ubah kondisinya menjadi Rusak Berat atau catat status Afkir.");
+        }
 
         $namaAlat = $alkes->nama_barang;
         $alkes->delete();

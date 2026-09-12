@@ -5,6 +5,7 @@ namespace App\Http\Requests;
 use App\Enums\KondisiAlkes;
 use App\Enums\StatusAlkes;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Enum;
 
 class UpdateAlkesRequest extends FormRequest
@@ -26,7 +27,12 @@ class UpdateAlkesRequest extends FormRequest
     {
         return [
             'nama_barang' => 'required|string|max:255',
-            'kode_inventaris' => 'nullable|string|max:100',
+            'kode_inventaris' => [
+                'nullable',
+                'string',
+                'max:100',
+                Rule::unique('alkes', 'kode_inventaris')->ignore($this->route('alkes')),
+            ],
             'nomor_seri' => 'nullable|string|max:100',
             'nomenklatur_id' => 'nullable|exists:nomenklatur,id',
             'merk' => 'nullable|string|max:255',

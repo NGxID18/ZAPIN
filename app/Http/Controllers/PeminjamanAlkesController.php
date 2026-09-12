@@ -17,12 +17,12 @@ class PeminjamanAlkesController extends Controller
         $query = PeminjamanAlkes::with(['alkes.ruangan', 'ruanganPeminjam']);
 
         if ($request->filled('search')) {
-            $search = trim($request->search);
-            $query->where(function ($q) use ($search) {
-                $q->where('peminjam_nama', 'like', "%{$search}%")
-                  ->orWhereHas('alkes', function ($aq) use ($search) {
-                      $aq->where('nama_barang', 'like', "%{$search}%")
-                         ->orWhere('nomor_seri', 'like', "%{$search}%");
+            $escaped = addcslashes(trim($request->search), '%_');
+            $query->where(function ($q) use ($escaped) {
+                $q->where('peminjam_nama', 'like', "%{$escaped}%")
+                  ->orWhereHas('alkes', function ($aq) use ($escaped) {
+                      $aq->where('nama_barang', 'like', "%{$escaped}%")
+                         ->orWhere('nomor_seri', 'like', "%{$escaped}%");
                   });
             });
         }
@@ -45,6 +45,14 @@ class PeminjamanAlkesController extends Controller
     public function store(\App\Http\Requests\StorePeminjamanRequest $request)
     {
         $validated = $request->validated();
+
+        // Otorisasi: Petugas ruangan hanya boleh meminjam atas nama ruangannya sendiri
+        if (session('user_role') === 'ruangan' && session('user_ruangan_id')) {
+            $userRuanganId = (int) session('user_ruangan_id');
+            if ((int) $validated['ruangan_peminjam_id'] !== $userRuanganId) {
+                abort(403, 'Akses Ditolak: Anda hanya berwenang mengajukan peminjaman atas nama ruangan Anda sendiri.');
+            }
+        }
 
         DB::transaction(function () use ($validated) {
             $alkes = Alkes::where('id', $validated['alkes_id'])->lockForUpdate()->firstOrFail();
@@ -91,6 +99,14 @@ class PeminjamanAlkesController extends Controller
             }
 
             $alkes = Alkes::where('id', $peminjaman->alkes_id)->lockForUpdate()->firstOrFail();
+
+            // Otorisasi BOLA: Hanya ruangan peminjam, ruangan pemilik alat, atau elektromedis yang berhak menyelesaikan pengembalian
+            if (session('user_role') === 'ruangan' && session('user_ruangan_id')) {
+                $userRuanganId = (int) session('user_ruangan_id');
+                if ((int) $peminjaman->ruangan_peminjam_id !== $userRuanganId && (int) $alkes->ruangan_id !== $userRuanganId) {
+                    abort(403, 'Akses Ditolak: Hanya ruangan peminjam, ruangan pemilik alat, atau Instalasi Elektromedis yang berwenang menandai pengembalian.');
+                }
+            }
 
             $peminjaman->update([
                 'status' => 'Dikembalikan',

@@ -16,14 +16,14 @@ class MutasiAlkesController extends Controller
         $query = MutasiAlkes::with(['alkes.ruangan', 'ruanganAsal', 'ruanganTujuan']);
 
         if ($request->filled('search')) {
-            $search = trim($request->search);
-            $query->where(function ($q) use ($search) {
-                $q->where('alasan_mutasi', 'like', "%{$search}%")
-                  ->orWhere('pemohon', 'like', "%{$search}%")
-                  ->orWhere('penanggung_jawab', 'like', "%{$search}%")
-                  ->orWhereHas('alkes', function ($aq) use ($search) {
-                      $aq->where('nama_barang', 'like', "%{$search}%")
-                         ->orWhere('nomor_seri', 'like', "%{$search}%");
+            $escaped = addcslashes(trim($request->search), '%_');
+            $query->where(function ($q) use ($escaped) {
+                $q->where('alasan_mutasi', 'like', "%{$escaped}%")
+                  ->orWhere('pemohon', 'like', "%{$escaped}%")
+                  ->orWhere('penanggung_jawab', 'like', "%{$escaped}%")
+                  ->orWhereHas('alkes', function ($aq) use ($escaped) {
+                      $aq->where('nama_barang', 'like', "%{$escaped}%")
+                         ->orWhere('nomor_seri', 'like', "%{$escaped}%");
                   });
             });
         }

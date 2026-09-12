@@ -21,14 +21,14 @@ class LogPemeliharaanController extends Controller
         $query = LogPemeliharaan::with(['alkes.ruangan', 'alkes.lokasiRuangan']);
 
         if ($request->filled('search')) {
-            $search = trim($request->search);
-            $query->where(function ($q) use ($search) {
-                $q->where('deskripsi_kerusakan', 'like', "%{$search}%")
-                  ->orWhere('tindakan_perbaikan', 'like', "%{$search}%")
-                  ->orWhere('pelaksana_vendor', 'like', "%{$search}%")
-                  ->orWhereHas('alkes', function ($aq) use ($search) {
-                      $aq->where('nama_barang', 'like', "%{$search}%")
-                         ->orWhere('nomor_seri', 'like', "%{$search}%");
+            $escaped = addcslashes(trim($request->search), '%_');
+            $query->where(function ($q) use ($escaped) {
+                $q->where('deskripsi_kerusakan', 'like', "%{$escaped}%")
+                  ->orWhere('tindakan_perbaikan', 'like', "%{$escaped}%")
+                  ->orWhere('pelaksana_vendor', 'like', "%{$escaped}%")
+                  ->orWhereHas('alkes', function ($aq) use ($escaped) {
+                      $aq->where('nama_barang', 'like', "%{$escaped}%")
+                         ->orWhere('nomor_seri', 'like', "%{$escaped}%");
                   });
             });
         }
