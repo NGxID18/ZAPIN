@@ -258,6 +258,13 @@
                         </div>
 
                         <div class="space-y-1 pt-1.5 pb-1">
+                            <a href="{{ route('peminjaman.index') }}" onclick="closeMobileSidebar()" class="sidebar-item flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-sm transition-all duration-150 {{ request()->routeIs('peminjaman.*') ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30' : 'text-slate-200 hover:bg-emerald-900 hover:text-white' }}">
+                                <svg class="w-5 h-5 text-sky-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
+                                <span class="sidebar-text">Peminjaman Alkes</span>
+                            </a>
+                        </div>
+
+                        <div class="space-y-1 pt-1.5 pb-1">
                             <a href="{{ route('pemeliharaan.index') }}" onclick="closeMobileSidebar()" class="sidebar-item flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-sm transition-all duration-150 {{ request()->routeIs('pemeliharaan.*') ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30' : 'text-slate-200 hover:bg-emerald-900 hover:text-white' }}">
                                 <svg class="w-5 h-5 text-orange-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.9 6.91a2.12 2.12 0 01-3-3l6.91-6.9a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>
                                 <div class="flex items-center justify-between w-full sidebar-text">
@@ -323,6 +330,18 @@
                     </div>
                 @endif
 
+                @if (session('error'))
+                    <div id="flashErrorMsg" class="mb-5 p-4 bg-rose-50 border border-rose-300 rounded-xl text-rose-900 font-bold text-sm flex items-center justify-between shadow-sm animate-fade-in">
+                        <div class="flex items-center gap-2.5">
+                            <i class="ri-error-warning-fill text-rose-600 text-xl"></i>
+                            <span>{{ session('error') }}</span>
+                        </div>
+                        <button type="button" onclick="document.getElementById('flashErrorMsg').remove()" class="text-rose-600 hover:text-rose-900 transition">
+                            <i class="ri-close-line text-xl"></i>
+                        </button>
+                    </div>
+                @endif
+
                 @yield('content')
             </main>
         </div>
@@ -367,6 +386,9 @@
 
             var flash = document.getElementById('flashSuccessMsg');
             if (flash) setTimeout(function() { flash.style.transition='opacity 0.3s'; flash.style.opacity='0'; setTimeout(function(){flash.remove()},300); }, 4000);
+
+            var flashErr = document.getElementById('flashErrorMsg');
+            if (flashErr) setTimeout(function() { flashErr.style.transition='opacity 0.3s'; flashErr.style.opacity='0'; setTimeout(function(){flashErr.remove()},300); }, 5000);
         });
     </script>
 </body>

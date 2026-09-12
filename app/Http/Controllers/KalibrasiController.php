@@ -93,9 +93,9 @@ class KalibrasiController extends Controller
 
         if ($request->hasFile('sertifikat_pdf')) {
             $file = $request->file('sertifikat_pdf');
-            $uploadDir = base_path('database/sertifikat');
+            $uploadDir = storage_path('app/sertifikat');
             if (!file_exists($uploadDir)) {
-                @mkdir($uploadDir, 0777, true);
+                @mkdir($uploadDir, 0755, true);
             }
             $extension = $file->guessExtension() ?: $file->getClientOriginalExtension();
             $filename = 'sertifikat_' . $alkes->id . '_' . time() . '.' . $extension;
@@ -146,15 +146,25 @@ class KalibrasiController extends Controller
     public function serveCertificate($filename)
     {
         $safeFilename = basename($filename);
-        $filePath = base_path('database/sertifikat/' . $safeFilename);
-        if (!file_exists($filePath)) {
-            $oldPublicPath = public_path('uploads/sertifikat/' . $safeFilename);
-            if (file_exists($oldPublicPath)) {
-                return response()->file($oldPublicPath);
-            }
-            abort(404, 'Dokumen sertifikat tidak ditemukan.');
+
+        // 1. Cek penyimpanan standar baru di storage/app/sertifikat
+        $storagePath = storage_path('app/sertifikat/' . $safeFilename);
+        if (file_exists($storagePath)) {
+            return response()->file($storagePath);
         }
 
-        return response()->file($filePath);
+        // 2. Fallback untuk data lama di database/sertifikat
+        $legacyDatabasePath = base_path('database/sertifikat/' . $safeFilename);
+        if (file_exists($legacyDatabasePath)) {
+            return response()->file($legacyDatabasePath);
+        }
+
+        // 3. Fallback untuk data lama di public/uploads/sertifikat
+        $oldPublicPath = public_path('uploads/sertifikat/' . $safeFilename);
+        if (file_exists($oldPublicPath)) {
+            return response()->file($oldPublicPath);
+        }
+
+        abort(404, 'Dokumen sertifikat tidak ditemukan.');
     }
 }

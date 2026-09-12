@@ -17,17 +17,22 @@
         </div>
 
         <div class="flex items-center gap-1.5">
-            <a href="{{ route('mutasi.create', ['alkes_id' => $alkes->id]) }}" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-xs rounded-lg transition flex items-center gap-1.5">
-                <i class="ri-arrow-left-right-line text-sm"></i>
-                Pindah Ruangan
-            </a>
-            <a href="{{ route('pemeliharaan.create', ['alkes_id' => $alkes->id]) }}" class="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white font-medium text-xs rounded-lg transition flex items-center gap-1.5">
-                <i class="ri-tools-line text-sm"></i>
-                Lapor Perbaikan
-            </a>
-            <a href="{{ route('alkes.edit', $alkes->id) }}" class="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg transition" title="Edit">
-                <i class="ri-edit-line text-sm"></i>
-            </a>
+            @if (in_array(session('user_role'), ['elektromedis', 'ruangan']))
+                <a href="{{ route('mutasi.create', ['alkes_id' => $alkes->id]) }}" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-xs rounded-lg transition flex items-center gap-1.5">
+                    <i class="ri-arrow-left-right-line text-sm"></i>
+                    Pindah Ruangan
+                </a>
+                <a href="{{ route('pemeliharaan.create', ['alkes_id' => $alkes->id]) }}" class="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white font-medium text-xs rounded-lg transition flex items-center gap-1.5">
+                    <i class="ri-tools-line text-sm"></i>
+                    Lapor Perbaikan
+                </a>
+            @endif
+
+            @if (session('user_role') === 'elektromedis')
+                <a href="{{ route('alkes.edit', $alkes->id) }}" class="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg transition" title="Edit Data Alkes">
+                    <i class="ri-edit-line text-sm"></i>
+                </a>
+            @endif
         </div>
     </div>
 

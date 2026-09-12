@@ -16,10 +16,13 @@ class CheckKalibrasiEWS extends Command
 
     public function handle()
     {
-        $h30 = now()->addDays(30)->toDateString();
-        $h7 = now()->addDays(7)->toDateString();
+        $today = now()->toDateString();
+        $maxWindow = now()->addDays(30)->toDateString();
 
-        $alkesPeringatan = Alkes::whereIn('tanggal_kalibrasi_berikutnya', [$h30, $h7])->get();
+        $alkesPeringatan = Alkes::whereNotNull('tanggal_kalibrasi_berikutnya')
+            ->where('tanggal_kalibrasi_berikutnya', '>=', $today)
+            ->where('tanggal_kalibrasi_berikutnya', '<=', $maxWindow)
+            ->get();
 
         if ($alkesPeringatan->isEmpty()) {
             $this->info('Tidak ada alkes yang mendekati batas kalibrasi hari ini.');
@@ -29,20 +32,31 @@ class CheckKalibrasiEWS extends Command
         $targetEmail = config('zapin.ews_email', 'kepala.elektromedis@rsjko.local');
 
         foreach ($alkesPeringatan as $alkes) {
-            $sisaHari = Carbon::parse($alkes->tanggal_kalibrasi_berikutnya)->diffInDays(now());
-            
-            // Format Hari (7 atau 30)
-            $labelHari = $sisaHari <= 8 ? '7' : '30';
+            $tglTarget = Carbon::parse($alkes->tanggal_kalibrasi_berikutnya)->startOfDay();
+            $sisaHari = (int) now()->startOfDay()->diffInDays($tglTarget, false);
 
-            // Cegah duplikasi notifikasi di hari yang sama
+            if ($sisaHari < 0) {
+                continue;
+            }
+
+            // Tentukan kategori jendela peringatan (H-7 atau H-30)
+            if ($sisaHari <= 7) {
+                $labelHari = '7';
+                $dedupDays = 7;
+            } else {
+                $labelHari = '30';
+                $dedupDays = 30;
+            }
+
+            // Cegah duplikasi notifikasi dalam jendela waktu yang sama
             $alreadyNotified = Notification::where('alkes_id', $alkes->id)
                 ->where('tipe', 'peringatan_kalibrasi')
-                ->whereDate('created_at', now()->toDateString())
                 ->where('judul', 'like', "%H-{$labelHari}%")
+                ->where('created_at', '>=', now()->subDays($dedupDays))
                 ->exists();
 
             if ($alreadyNotified) {
-                $this->line("Notifikasi H-{$labelHari} untuk {$alkes->nama_barang} sudah terkirim hari ini, melewati...");
+                $this->line("Notifikasi H-{$labelHari} untuk {$alkes->nama_barang} sudah terkirim dalam {$dedupDays} hari terakhir, melewati...");
                 continue;
             }
 
@@ -51,7 +65,7 @@ class CheckKalibrasiEWS extends Command
                 'alkes_id' => $alkes->id,
                 'ruangan_asal_id' => $alkes->ruangan_id,
                 'judul' => "Peringatan Kalibrasi H-{$labelHari} ({$alkes->nama_barang})",
-                'pesan' => "Alat {$alkes->nama_barang} (SN: " . ($alkes->nomor_seri ?: '-') . ") masa kalibrasinya akan habis pada " . Carbon::parse($alkes->tanggal_kalibrasi_berikutnya)->format('d M Y') . ". Harap segera jadwalkan kalibrasi.",
+                'pesan' => "Alat {$alkes->nama_barang} (SN: " . ($alkes->nomor_seri ?: '-') . ") masa kalibrasinya akan habis pada " . Carbon::parse($alkes->tanggal_kalibrasi_berikutnya)->format('d M Y') . " (Sisa {$sisaHari} hari). Harap segera jadwalkan kalibrasi.",
                 'tipe' => 'peringatan_kalibrasi',
             ]);
 

@@ -19,7 +19,7 @@ class DashboardController extends Controller
         // Exact Condition Breakdown
         $alkesBaik = Alkes::where('kondisi', KondisiAlkes::BAIK->value)->count();
         $alkesRusak = Alkes::where('kondisi', '!=', KondisiAlkes::BAIK->value)->count();
-        $alkesTersedia = $alkesBaik;
+        $alkesTersedia = Alkes::where('status', StatusAlkes::TERSEDIA->value)->count();
 
         // Ruangan List based on Physical Location (Lokasi Fisik saat Ini)
         $ruanganList = Ruangan::withCount(['alkesLokasi as alkes_count', 'alkesLokasi as alkes_rusak_count' => function ($q) {

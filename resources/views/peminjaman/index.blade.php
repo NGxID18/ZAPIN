@@ -83,8 +83,17 @@
         <form method="POST" action="{{ route('peminjaman.store') }}" class="p-5 space-y-4">
             @csrf
             <div>
-                <label class="block text-xs font-bold text-slate-700 mb-1">ID Alat Kesehatan *</label>
-                <input type="text" name="alkes_id" placeholder="Masukkan ID Alat (bisa dilihat di URL detail alkes)" required class="w-full px-4 py-2 border border-slate-300 rounded-xl text-sm">
+                <label class="block text-xs font-bold text-slate-700 mb-1">Pilih Alat Kesehatan (Status Tersedia) *</label>
+                <select name="alkes_id" required class="w-full px-4 py-2 border border-slate-300 rounded-xl text-sm">
+                    <option value="">-- Pilih Alat yang Tersedia --</option>
+                    @if(isset($availableAlkes))
+                        @foreach($availableAlkes as $a)
+                            <option value="{{ $a->id }}">
+                                {{ $a->nama_barang }} (SN: {{ $a->nomor_seri ?: '-' }}) &mdash; Ruang {{ $a->ruangan->nama_ruangan ?? '-' }}
+                            </option>
+                        @endforeach
+                    @endif
+                </select>
             </div>
             <div>
                 <label class="block text-xs font-bold text-slate-700 mb-1">Ruangan Peminjam *</label>

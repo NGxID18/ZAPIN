@@ -79,13 +79,22 @@ class LogPemeliharaanController extends Controller
 
         $tglMulai = $validated['tanggal_lapor'] ?? $validated['tanggal_mulai'] ?? now()->toDateTimeString();
         $gejala = $validated['gejala_kerusakan'] ?? $validated['deskripsi_kerusakan'] ?? 'Gejala kerusakan dilaporkan oleh petugas ruangan.';
+        $butuhMutasiElektro = $request->boolean('butuh_mutasi_elektro', true);
 
-        DB::transaction(function () use ($validated, $tglMulai, $gejala, $fotoPath) {
-            $alkes = Alkes::with(['ruangan', 'lokasiRuangan'])->findOrFail($validated['alkes_id']);
+        DB::transaction(function () use ($validated, $tglMulai, $gejala, $fotoPath, $butuhMutasiElektro) {
+            $alkes = Alkes::with(['ruangan', 'lokasiRuangan'])->where('id', $validated['alkes_id'])->lockForUpdate()->firstOrFail();
+
+            // Validasi kepemilikan alat jika user adalah peran ruangan
+            if (session('user_role') === 'ruangan' && session('user_ruangan_id')) {
+                $userRuanganId = (int) session('user_ruangan_id');
+                if ($alkes->ruangan_id !== $userRuanganId && $alkes->lokasi_ruangan_id !== $userRuanganId) {
+                    abort(403, 'Akses Ditolak: Anda hanya dapat melaporkan pemeliharaan untuk alat kesehatan milik ruangan Anda.');
+                }
+            }
+
             $elektromedisRuang = Ruangan::where('nama_ruangan', 'Elektromedis')->first();
-
             $ruanganAsalFisikId = $alkes->lokasi_ruangan_id ?: $alkes->ruangan_id;
-            $ruanganTujuanId = $elektromedisRuang ? $elektromedisRuang->id : $ruanganAsalFisikId;
+            $ruanganTujuanId = ($butuhMutasiElektro && $elektromedisRuang) ? $elektromedisRuang->id : $ruanganAsalFisikId;
 
             $log = LogPemeliharaan::create([
                 'alkes_id' => $alkes->id,
@@ -99,40 +108,52 @@ class LogPemeliharaanController extends Controller
                 'status_hasil' => 'Proses',
             ]);
 
-            MutasiAlkes::create([
-                'alkes_id' => $alkes->id,
-                'ruangan_asal_id' => $ruanganAsalFisikId,
-                'ruangan_tujuan_id' => $ruanganTujuanId,
-                'tanggal_mutasi' => now(),
-                'pemohon' => session('user_role_label', 'Petugas Ruangan'),
-                'penanggung_jawab' => 'Petugas Ruangan & ATEM Elektromedis',
-                'alasan_mutasi' => 'Pengajuan ' . $validated['jenis_tindakan'] . ' - Unit Dipindahkan ke Ruangan Elektromedis',
-                'status_persetujuan' => 'Disetujui',
-            ]);
+            // Jika butuh dikirim ke workshop Elektromedis dan belum berada di sana
+            if ($butuhMutasiElektro && $ruanganAsalFisikId !== $ruanganTujuanId) {
+                MutasiAlkes::create([
+                    'alkes_id' => $alkes->id,
+                    'ruangan_asal_id' => $ruanganAsalFisikId,
+                    'ruangan_tujuan_id' => $ruanganTujuanId,
+                    'tanggal_mutasi' => now(),
+                    'pemohon' => session('user_role_label', 'Petugas Ruangan'),
+                    'penanggung_jawab' => 'Petugas Ruangan & ATEM Elektromedis',
+                    'alasan_mutasi' => 'Pengajuan ' . $validated['jenis_tindakan'] . ' - Unit Dipindahkan ke Ruangan Elektromedis',
+                    'status_persetujuan' => 'Disetujui',
+                ]);
+            }
+
+            // Tentukan kondisi berdasarkan jenis tindakan
+            $kondisiBaru = ($validated['jenis_tindakan'] === 'Perbaikan (Korektif)')
+                ? KondisiAlkes::RUSAK_BERAT->value
+                : KondisiAlkes::RUSAK_RINGAN->value;
+
+            $lokasiNote = $butuhMutasiElektro
+                ? 'Di Ruangan Elektromedis (Dalam Penanganan)'
+                : 'Dalam Penanganan On-Site di ' . ($alkes->lokasiRuangan->nama_ruangan ?? $alkes->ruangan->nama_ruangan ?? 'Ruangan');
 
             $alkes->update([
                 'status' => StatusAlkes::DALAM_PERBAIKAN->value,
-                'kondisi' => KondisiAlkes::RUSAK_BERAT->value,
+                'kondisi' => $kondisiBaru,
                 'lokasi_ruangan_id' => $ruanganTujuanId,
-                'lokasi_saat_ini_note' => 'Di Ruangan Elektromedis (Dalam Perbaikan)',
+                'lokasi_saat_ini_note' => $lokasiNote,
             ]);
 
             Notification::create([
                 'alkes_id' => $alkes->id,
                 'ruangan_asal_id' => $alkes->ruangan_id,
                 'judul' => 'Laporan Kerusakan Masuk dari Ruang ' . ($alkes->ruangan->nama_ruangan ?? 'RS'),
-                'pesan' => "Unit {$alkes->nama_barang} (SN: " . ($alkes->nomor_seri ?? '-') . ") dikirim dari Ruang " . ($alkes->ruangan->nama_ruangan ?? 'RS') . " ke Elektromedis untuk " . $validated['jenis_tindakan'] . '.',
+                'pesan' => "Unit {$alkes->nama_barang} (SN: " . ($alkes->nomor_seri ?? '-') . ") dilaporkan untuk " . $validated['jenis_tindakan'] . ($butuhMutasiElektro ? ' (Unit dibawa ke Elektromedis).' : ' (Penanganan di lokasi).'),
                 'tipe' => 'laporan_kerusakan',
             ]);
 
             ActivityLog::record(
                 'Lapor Perbaikan',
-                "Melaporkan kerusakan '{$alkes->nama_barang}'. Lokasi fisik unit otomatis dipindahkan ke Ruangan Elektromedis.",
+                "Melaporkan kerusakan '{$alkes->nama_barang}' (" . $validated['jenis_tindakan'] . ").",
                 $alkes->ruangan->nama_ruangan ?? 'RS'
             );
         });
 
-        return redirect()->route('pemeliharaan.index')->with('success', 'Laporan kerusakan berhasil dikirim! Mutasi fisik unit ke Ruangan Elektromedis telah otomatis tercatat.');
+        return redirect()->route('pemeliharaan.index')->with('success', 'Laporan kerusakan berhasil dikirim dan tercatat dalam sistem.');
     }
 
     public function resolve(\App\Http\Requests\ResolvePemeliharaanRequest $request, $id)
@@ -140,16 +161,17 @@ class LogPemeliharaanController extends Controller
         $validated = $request->validated();
 
         DB::transaction(function () use ($id, $validated) {
-            $log = LogPemeliharaan::findOrFail($id);
-            $alkes = Alkes::with(['ruangan', 'lokasiRuangan'])->findOrFail($log->alkes_id);
-            $elektromedisRuang = Ruangan::where('nama_ruangan', 'Elektromedis')->first();
+            $log = LogPemeliharaan::where('id', $id)->lockForUpdate()->firstOrFail();
 
-            $ruanganAsalElektroId = $elektromedisRuang ? $elektromedisRuang->id : $alkes->lokasi_ruangan_id;
+            if ($log->status_hasil === 'Selesai') {
+                abort(422, 'Laporan perbaikan ini sudah ditandai selesai sebelumnya.');
+            }
 
+            $alkes = Alkes::with(['ruangan', 'lokasiRuangan'])->where('id', $log->alkes_id)->lockForUpdate()->firstOrFail();
             $now = now();
 
             $deskripsiBaru = $log->deskripsi_kerusakan;
-            if ($validated['diagnosa_kerusakan']) {
+            if (!empty($validated['diagnosa_kerusakan'])) {
                 $deskripsiBaru .= "\nDiagnosa Elektromedis: " . $validated['diagnosa_kerusakan'];
             }
 
@@ -162,32 +184,34 @@ class LogPemeliharaanController extends Controller
                 'biaya' => $validated['biaya'] ?? $log->biaya,
             ]);
 
-            MutasiAlkes::create([
-                'alkes_id' => $alkes->id,
-                'ruangan_asal_id' => $ruanganAsalElektroId,
-                'ruangan_tujuan_id' => $alkes->ruangan_id,
-                'tanggal_mutasi' => $now,
-                'pemohon' => 'Ruangan Elektromedis (Admin)',
-                'penanggung_jawab' => 'Teknisi Elektromedis RS',
-                'alasan_mutasi' => 'Perbaikan & Kalibrasi Selesai - Unit Dikembalikan ke Ruangan Asal',
-                'status_persetujuan' => 'Disetujui',
-            ]);
+            // Jika lokasi fisik alat sebelumnya dipindahkan ke ruangan lain (misal workshop Elektromedis), kembalikan ke ruangan pemilik
+            if ($alkes->lokasi_ruangan_id && $alkes->lokasi_ruangan_id !== $alkes->ruangan_id) {
+                MutasiAlkes::create([
+                    'alkes_id' => $alkes->id,
+                    'ruangan_asal_id' => $alkes->lokasi_ruangan_id,
+                    'ruangan_tujuan_id' => $alkes->ruangan_id,
+                    'tanggal_mutasi' => $now,
+                    'pemohon' => 'Ruangan Elektromedis (Admin)',
+                    'penanggung_jawab' => 'Teknisi Elektromedis RS',
+                    'alasan_mutasi' => 'Perbaikan Selesai - Unit Dikembalikan ke Ruangan Asal',
+                    'status_persetujuan' => 'Disetujui',
+                ]);
+            }
 
+            // Catatan: Status kalibrasi TIDAK diubah otomatis saat perbaikan fisik selesai,
+            // sertifikasi kalibrasi harus dicatat melalui modul Kalibrasi formal.
             $alkes->update([
                 'status' => StatusAlkes::TERSEDIA->value,
                 'kondisi' => KondisiAlkes::BAIK->value,
                 'lokasi_ruangan_id' => $alkes->ruangan_id,
                 'lokasi_saat_ini_note' => null,
-                'status_kalibrasi' => 'SUDAH DIKALIBRASI',
-                'tanggal_kalibrasi_terakhir' => $now->toDateString(),
-                'tanggal_kalibrasi_berikutnya' => $now->copy()->addYear()->toDateString(),
             ]);
 
             Notification::create([
                 'alkes_id' => $alkes->id,
                 'ruangan_asal_id' => $alkes->ruangan_id,
-                'judul' => 'Perbaikan & Kalibrasi Selesai - Unit Dikembalikan ke ' . ($alkes->ruangan->nama_ruangan ?? 'Ruangan'),
-                'pesan' => "Unit {$alkes->nama_barang} telah selesai diperbaiki & dikalibrasi ulang pada {$now->format('d M Y H:i')} WIB. Status kalibrasi otomatis diperbarui (Valid hingga " . $now->copy()->addYear()->format('d M Y') . "). Diagnosa: {$validated['diagnosa_kerusakan']}. Tindakan: {$validated['tindakan_perbaikan']}.",
+                'judul' => 'Perbaikan Selesai - Unit Siap di ' . ($alkes->ruangan->nama_ruangan ?? 'Ruangan'),
+                'pesan' => "Unit {$alkes->nama_barang} telah selesai diperbaiki pada {$now->format('d M Y H:i')} WIB dan telah kembali tersedia di ruangan asal. Diagnosa: {$validated['diagnosa_kerusakan']}. Tindakan: {$validated['tindakan_perbaikan']}.",
                 'tipe' => 'perbaikan_selesai',
             ]);
 
@@ -198,13 +222,13 @@ class LogPemeliharaanController extends Controller
                 ->update(['dibaca' => true]);
 
             ActivityLog::record(
-                'Perbaikan & Kalibrasi Selesai',
-                "Elektromedis menyelesaikan perbaikan & kalibrasi ulang '{$alkes->nama_barang}' pada {$now->format('d M Y H:i')} WIB. Riwayat kalibrasi diperbarui.",
+                'Perbaikan Selesai',
+                "Elektromedis menyelesaikan perbaikan unit '{$alkes->nama_barang}' pada {$now->format('d M Y H:i')} WIB. Unit dikembalikan dalam kondisi baik.",
                 'Elektromedis'
             );
         });
 
-        return redirect()->route('pemeliharaan.index')->with('success', 'Perbaikan berhasil diselesaikan! Diagnosa teknis, tindakan perbaikan, dan tanggal selesai telah tercatat otomatis.');
+        return redirect()->route('pemeliharaan.index')->with('success', 'Perbaikan berhasil diselesaikan! Diagnosa teknis, tindakan perbaikan, dan tanggal selesai telah tercatat.');
     }
 
     public function markNotificationsRead()

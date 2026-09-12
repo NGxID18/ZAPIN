@@ -17,6 +17,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
         $middleware->alias([
             'role' => \App\Http\Middleware\CheckRole::class,
+            'zapin.api' => \App\Http\Middleware\VerifyZapinApiKey::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

@@ -34,8 +34,12 @@ class PeminjamanAlkesController extends Controller
         $perPage = $request->per_page === 'all' ? 250 : min(max((int) $request->get('per_page', 50), 1), 250);
         $peminjamanList = $query->latest()->paginate($perPage)->withQueryString();
         $ruanganList = \Illuminate\Support\Facades\Cache::remember('ruangan_list', 86400, fn() => Ruangan::orderBy('nama_ruangan', 'asc')->get());
+        $availableAlkes = Alkes::with('ruangan')
+            ->where('status', StatusAlkes::TERSEDIA->value)
+            ->orderBy('nama_barang', 'asc')
+            ->get();
 
-        return view('peminjaman.index', compact('peminjamanList', 'ruanganList'));
+        return view('peminjaman.index', compact('peminjamanList', 'ruanganList', 'availableAlkes'));
     }
 
     public function store(\App\Http\Requests\StorePeminjamanRequest $request)
@@ -45,7 +49,8 @@ class PeminjamanAlkesController extends Controller
         DB::transaction(function () use ($validated) {
             $alkes = Alkes::where('id', $validated['alkes_id'])->lockForUpdate()->firstOrFail();
             
-            if ($alkes->status->value !== StatusAlkes::TERSEDIA->value) {
+            $statusVal = $alkes->status instanceof StatusAlkes ? $alkes->status->value : (string) $alkes->status;
+            if ($statusVal !== StatusAlkes::TERSEDIA->value) {
                 abort(422, 'Alat ini sedang tidak tersedia untuk dipinjam.');
             }
 
@@ -79,8 +84,13 @@ class PeminjamanAlkesController extends Controller
     public function kembalikan(Request $request, $id)
     {
         DB::transaction(function () use ($id) {
-            $peminjaman = PeminjamanAlkes::findOrFail($id);
-            $alkes = Alkes::findOrFail($peminjaman->alkes_id);
+            $peminjaman = PeminjamanAlkes::where('id', $id)->lockForUpdate()->firstOrFail();
+
+            if ($peminjaman->status === 'Dikembalikan') {
+                abort(422, 'Peminjaman alat ini sudah dikembalikan sebelumnya.');
+            }
+
+            $alkes = Alkes::where('id', $peminjaman->alkes_id)->lockForUpdate()->firstOrFail();
 
             $peminjaman->update([
                 'status' => 'Dikembalikan',

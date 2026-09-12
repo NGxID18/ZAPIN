@@ -24,6 +24,7 @@ class StorePemeliharaanRequest extends FormRequest
             'tindakan_perbaikan' => 'nullable|string',
             'biaya' => 'nullable|numeric',
             'foto_kerusakan' => 'nullable|image|max:5120',
+            'butuh_mutasi_elektro' => 'nullable|boolean',
         ];
     }
 }

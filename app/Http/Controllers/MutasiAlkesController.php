@@ -60,6 +60,18 @@ class MutasiAlkesController extends Controller
             $alkes = Alkes::where('id', $validated['alkes_id'])->lockForUpdate()->firstOrFail();
             $ruanganAsalId = $alkes->lokasi_ruangan_id ?? $alkes->ruangan_id;
 
+            // Validasi hak akses: Peran ruangan hanya boleh memutasikan alat di ruangannya
+            if (session('user_role') === 'ruangan' && session('user_ruangan_id')) {
+                $userRuanganId = (int) session('user_ruangan_id');
+                if ($alkes->ruangan_id !== $userRuanganId && $alkes->lokasi_ruangan_id !== $userRuanganId) {
+                    abort(403, 'Akses Ditolak: Anda hanya berwenang memindahkan alat kesehatan milik atau yang berada di ruangan Anda.');
+                }
+            }
+
+            if ($alkes->status === \App\Enums\StatusAlkes::DIPINJAM) {
+                abort(422, 'Alat sedang dalam status dipinjam. Harap kembalikan terlebih dahulu sebelum memindahkan lokasi.');
+            }
+
             if ($ruanganAsalId == $validated['ruangan_tujuan_id']) {
                 abort(422, 'Ruangan tujuan harus berbeda dari ruangan asal fisik saat ini!');
             }

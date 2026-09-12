@@ -193,17 +193,17 @@ document.addEventListener('DOMContentLoaded', function () {
     new Chart(ctxRuangan, {
         type: 'bar',
         data: {
-            labels: {!! json_encode($chartRuanganLabels) !!},
+            labels: @js($chartRuanganLabels),
             datasets: [
                 {
                     label: 'Baik / Operasional',
-                    data: {!! json_encode($chartKondisiBaik) !!},
+                    data: @js($chartKondisiBaik),
                     backgroundColor: '#059669',
                     borderRadius: 5
                 },
                 {
                     label: 'Rusak / Perbaikan',
-                    data: {!! json_encode($chartKondisiRusak) !!},
+                    data: @js($chartKondisiRusak),
                     backgroundColor: '#e11d48',
                     borderRadius: 5
                 }

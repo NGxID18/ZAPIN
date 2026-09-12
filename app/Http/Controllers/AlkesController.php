@@ -380,10 +380,10 @@ class AlkesController extends Controller
             return $this->apiIndex();
         }
 
-        $secretKey = (string) config('zapin.api_key', env('ZAPIN_API_KEY', 'zapin_secret_key_rsjko_2026'));
+        $secretKey = (string) config('zapin.api_key');
         $authHeader = (string) ($request->header('X-ZAPIN-KEY') ?: $request->input('api_key', ''));
 
-        if ($authHeader === '' || !hash_equals($secretKey, $authHeader)) {
+        if (empty($secretKey) || $authHeader === '' || !hash_equals($secretKey, $authHeader)) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Unauthorized: Kunci API ZAPIN tidak valid.'

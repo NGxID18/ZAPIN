@@ -59,9 +59,10 @@ class AuthController extends Controller
         return redirect()->route('dashboard')->with('success', $msg);
     }
 
-    public function logout()
+    public function logout(Request $request)
     {
-        session()->forget(['user_role', 'user_role_label', 'user_ruangan_id', 'user_ruangan_name']);
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
         return redirect()->route('login')->with('success', 'Anda telah keluar dari sistem ZAPIN.');
     }
 }
