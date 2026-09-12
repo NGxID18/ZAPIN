@@ -450,6 +450,103 @@ assertCondition(
 $pinjamTest2->delete();
 $alkesRuangA->delete();
 
+// -----------------------------------------------------------------
+// Test 14: AppServiceProvider Role Fallback Protection
+// -----------------------------------------------------------------
+echo "\n14. Menguji AppServiceProvider Role Fallback:\n";
+
+session()->forget(['user_role', 'user_role_label']);
+$viewComposerData = [];
+$view = view('layouts.app');
+$viewData = $view->gatherData();
+assertCondition(
+    "AppServiceProvider tidak membocorkan role default 'elektromedis' saat session kosong",
+    ($viewData['currentRole'] ?? null) !== 'elektromedis'
+);
+
+// -----------------------------------------------------------------
+// Test 15: KalibrasiController::serveCertificate Extension Whitelist
+// -----------------------------------------------------------------
+echo "\n15. Menguji Whitelist Ekstensi serveCertificate:\n";
+
+$kalibrasiCtrl = new \App\Http\Controllers\KalibrasiController();
+$disallowedCaught = false;
+try {
+    $kalibrasiCtrl->serveCertificate('rahasia.env');
+} catch (\Symfony\Component\HttpKernel\Exception\HttpException $e) {
+    if ($e->getStatusCode() === 403) {
+        $disallowedCaught = true;
+    }
+}
+assertCondition(
+    "File dengan ekstensi tidak terdaftar (.env/.php) diblokir (HTTP 403)",
+    $disallowedCaught === true
+);
+
+// -----------------------------------------------------------------
+// Test 16: AlkesSyncService Unique Room Code Collision
+// -----------------------------------------------------------------
+echo "\n16. Menguji Ketahanan Tabrakan Kode Ruangan pada AlkesSyncService:\n";
+
+$syncService = new \App\Services\AlkesSyncService();
+// Sinkronisasikan dua ruangan dengan prefix nama yang identik
+$syncItems = [
+    [
+        'nama_barang' => 'EKG Sinkronisasi A',
+        'ruang_pemilik' => 'Poli Uji Coba Rawat Jalan Anak',
+        'kondisi' => 'Baik',
+    ],
+    [
+        'nama_barang' => 'EKG Sinkronisasi B',
+        'ruang_pemilik' => 'Poli Uji Coba Rawat Jalan Mata',
+        'kondisi' => 'Baik',
+    ]
+];
+
+$syncException = false;
+try {
+    $syncResult = $syncService->sync($syncItems);
+} catch (\Throwable $e) {
+    $syncException = true;
+    echo "  [ERROR Sync] " . $e->getMessage() . "\n";
+}
+assertCondition(
+    "Dua ruangan dengan prefix 10 karakter serupa berhasil dibuat tanpa SQL unique constraint violation",
+    $syncException === false && isset($syncResult['created_count'])
+);
+
+// -----------------------------------------------------------------
+// Test 17: AlkesSyncService Deduplikasi Alkes Tanpa Nomor Seri
+// -----------------------------------------------------------------
+echo "\n17. Menguji Deduplikasi Alkes Tanpa Nomor Seri saat Sinkronisasi Ulang:\n";
+
+// Jalankan sync kedua kali dengan item yang persis sama
+$syncResult2 = $syncService->sync($syncItems);
+assertCondition(
+    "Sinkronisasi ulang data tanpa nomor seri tidak membuat duplikasi alkes baru (created_count == 0)",
+    $syncResult2['created_count'] === 0
+);
+
+// Cleanup alkes sync test
+Alkes::whereIn('nama_barang', ['EKG Sinkronisasi A', 'EKG Sinkronisasi B'])->delete();
+Ruangan::whereIn('nama_ruangan', ['Poli Uji Coba Rawat Jalan Anak', 'Poli Uji Coba Rawat Jalan Mata'])->delete();
+
+// -----------------------------------------------------------------
+// Test 18: StorePemeliharaanRequest Date Type Validation
+// -----------------------------------------------------------------
+echo "\n18. Menguji Validasi Tanggal pada StorePemeliharaanRequest:\n";
+
+$badDateValidator = \Illuminate\Support\Facades\Validator::make([
+    'alkes_id' => 1,
+    'jenis_tindakan' => 'Perbaikan',
+    'tanggal_lapor' => 'bukan-tanggal-valid',
+], (new \App\Http\Requests\StorePemeliharaanRequest())->rules());
+
+assertCondition(
+    "Input tanggal non-valid pada StorePemeliharaanRequest ditolak oleh validator",
+    $badDateValidator->fails() && $badDateValidator->errors()->has('tanggal_lapor')
+);
+
 echo "\n======================================================\n";
 echo "             RINGKASAN HASIL VERIFIKASI               \n";
 echo "======================================================\n";

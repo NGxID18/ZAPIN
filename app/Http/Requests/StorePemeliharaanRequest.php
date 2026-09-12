@@ -16,8 +16,8 @@ class StorePemeliharaanRequest extends FormRequest
         return [
             'alkes_id' => 'required|exists:alkes,id',
             'jenis_tindakan' => 'required|string',
-            'tanggal_lapor' => 'nullable|string',
-            'tanggal_mulai' => 'nullable|string',
+            'tanggal_lapor' => 'nullable|date',
+            'tanggal_mulai' => 'nullable|date',
             'gejala_kerusakan' => 'nullable|string',
             'deskripsi_kerusakan' => 'nullable|string',
             'pelaksana_vendor' => 'nullable|string',

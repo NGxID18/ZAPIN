@@ -33,7 +33,14 @@ class AlkesSyncService
 
                 $ruangan = Ruangan::whereRaw('LOWER(nama_ruangan) = ?', [$key])->first();
                 if (!$ruangan) {
-                    $kodeStr = 'R-' . strtoupper(substr(str_replace([' ', '/'], '-', $nameClean), 0, 10));
+                    $baseKode = 'R-' . strtoupper(substr(str_replace([' ', '/'], '-', $nameClean), 0, 10));
+                    $kodeStr = $baseKode;
+                    $counter = 1;
+                    while (Ruangan::where('kode_ruangan', $kodeStr)->exists()) {
+                        $kodeStr = $baseKode . '-' . $counter;
+                        $counter++;
+                    }
+
                     $ruangan = Ruangan::create([
                         'nama_ruangan' => $nameClean,
                         'kode_ruangan' => $kodeStr,
@@ -72,6 +79,18 @@ class AlkesSyncService
 
                 if (!$alkes && !empty($row['seri_number']) && $row['seri_number'] !== '-') {
                     $alkes = Alkes::where('nomor_seri', trim($row['seri_number']))->first();
+                }
+
+                // Fallback pencocokan alkes tanpa nomor seri agar tidak terduplikasi saat sinkronisasi berkala
+                if (!$alkes && (empty($row['seri_number']) || $row['seri_number'] === '-')) {
+                    $alkes = Alkes::where('nama_barang', $namaBarang)
+                        ->where('ruangan_id', $ruangPemilikId)
+                        ->where(function ($q) {
+                            $q->whereNull('nomor_seri')
+                              ->orWhere('nomor_seri', '-')
+                              ->orWhere('nomor_seri', '');
+                        })
+                        ->first();
                 }
 
                 if ($alkes) {

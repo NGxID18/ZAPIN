@@ -28,8 +28,8 @@ class AppServiceProvider extends ServiceProvider
             $view->with([
                 'unreadNotifCount' => $unreadNotifCount,
                 'recentNotifs' => $recentNotifs,
-                'currentRole' => session('user_role', 'elektromedis'),
-                'userRoleLabel' => session('user_role_label', 'Instalasi Elektromedis'),
+                'currentRole' => session('user_role'),
+                'userRoleLabel' => session('user_role_label', 'Pengguna ZAPIN'),
             ]);
         });
     }

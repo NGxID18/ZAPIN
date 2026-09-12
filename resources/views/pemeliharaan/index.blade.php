@@ -180,7 +180,7 @@
                                             <i class="ri-checkbox-circle-fill text-emerald-600"></i> Selesai
                                         </span>
                                         <button type="button" class="btn-detail text-[11px] font-bold text-emerald-700 hover:underline block mx-auto"
-                                            data-log="{{ json_encode($log) }}"
+                                            data-log='@json($log)'
                                             data-nama="{{ e($log->alkes->nama_barang ?? 'Alkes') }}"
                                             data-ruangan="{{ e($log->alkes->ruangan->nama_ruangan ?? 'RS') }}">
                                             Detail & Catatan &rarr;

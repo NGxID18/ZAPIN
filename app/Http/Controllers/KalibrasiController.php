@@ -97,7 +97,9 @@ class KalibrasiController extends Controller
             if (!file_exists($uploadDir)) {
                 @mkdir($uploadDir, 0755, true);
             }
-            $extension = $file->guessExtension() ?: $file->getClientOriginalExtension();
+            $allowedExtensions = ['pdf', 'jpg', 'jpeg', 'png', 'webp'];
+            $rawExt = strtolower($file->guessExtension() ?: $file->getClientOriginalExtension());
+            $extension = in_array($rawExt, $allowedExtensions, true) ? $rawExt : 'pdf';
             $filename = 'sertifikat_' . $alkes->id . '_' . time() . '.' . $extension;
             $file->move($uploadDir, $filename);
             $filePath = '/database/sertifikat/' . $filename;
@@ -146,6 +148,13 @@ class KalibrasiController extends Controller
     public function serveCertificate($filename)
     {
         $safeFilename = basename($filename);
+
+        // Validasi whitelist format ekstensi file sertifikat
+        $ext = strtolower(pathinfo($safeFilename, PATHINFO_EXTENSION));
+        $allowedExtensions = ['pdf', 'jpg', 'jpeg', 'png', 'webp'];
+        if (!in_array($ext, $allowedExtensions, true)) {
+            abort(403, 'Akses Ditolak: Format dokumen sertifikat tidak diizinkan.');
+        }
 
         // 1. Cek penyimpanan standar baru di storage/app/sertifikat
         $storagePath = storage_path('app/sertifikat/' . $safeFilename);
