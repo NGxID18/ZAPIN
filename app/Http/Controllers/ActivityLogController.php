@@ -12,12 +12,12 @@ class ActivityLogController extends Controller
         $query = ActivityLog::query();
 
         if ($request->filled('search')) {
-            $escaped = addcslashes(trim($request->search), '%_');
-            $query->where(function ($q) use ($escaped) {
-                $q->where('action', 'like', "%{$escaped}%")
-                  ->orWhere('description', 'like', "%{$escaped}%")
-                  ->orWhere('user_role', 'like', "%{$escaped}%")
-                  ->orWhere('ruangan_name', 'like', "%{$escaped}%");
+            $s = trim($request->search);
+            $query->where(function ($q) use ($s) {
+                $q->where('action', 'ilike', "%{$s}%")
+                  ->orWhere('description', 'ilike', "%{$s}%")
+                  ->orWhere('user_role', 'ilike', "%{$s}%")
+                  ->orWhere('ruangan_name', 'ilike', "%{$s}%");
             });
         }
 
@@ -25,7 +25,8 @@ class ActivityLogController extends Controller
             $query->where('action', $request->action);
         }
 
-        $perPage = $request->per_page === 'all' ? 250 : min(max((int) $request->get('per_page', 50), 1), 250);
+        $isAll = $request->per_page === 'all';
+        $perPage = $isAll ? max(1, (clone $query)->count()) : min(max((int) $request->get('per_page', 50), 1), 500);
         $logs = $query->latest()->paginate($perPage)->withQueryString();
         $actionTypes = ActivityLog::select('action')->distinct()->pluck('action');
 

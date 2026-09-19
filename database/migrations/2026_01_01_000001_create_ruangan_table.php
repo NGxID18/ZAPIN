@@ -8,18 +8,17 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('nomenklatur', function (Blueprint $table) {
+        Schema::create('ruangan', function (Blueprint $table) {
             $table->id();
-            $table->string('kode_nomenklatur')->unique();
-            $table->string('nama_alat');
-            $table->string('kategori')->default('Alat Kesehatan');
-            $table->text('deskripsi')->nullable();
+            $table->string('nama_ruangan')->unique();
+            $table->string('kode_ruangan')->nullable()->unique();
             $table->timestamps();
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('nomenklatur');
+        Schema::dropIfExists('ruangan');
     }
 };
+

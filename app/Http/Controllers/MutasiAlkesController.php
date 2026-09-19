@@ -16,14 +16,14 @@ class MutasiAlkesController extends Controller
         $query = MutasiAlkes::with(['alkes.ruangan', 'ruanganAsal', 'ruanganTujuan']);
 
         if ($request->filled('search')) {
-            $escaped = addcslashes(trim($request->search), '%_');
-            $query->where(function ($q) use ($escaped) {
-                $q->where('alasan_mutasi', 'like', "%{$escaped}%")
-                  ->orWhere('pemohon', 'like', "%{$escaped}%")
-                  ->orWhere('penanggung_jawab', 'like', "%{$escaped}%")
-                  ->orWhereHas('alkes', function ($aq) use ($escaped) {
-                      $aq->where('nama_barang', 'like', "%{$escaped}%")
-                         ->orWhere('nomor_seri', 'like', "%{$escaped}%");
+            $s = trim($request->search);
+            $query->where(function ($q) use ($s) {
+                $q->where('alasan_mutasi', 'ilike', "%{$s}%")
+                  ->orWhere('pemohon', 'ilike', "%{$s}%")
+                  ->orWhere('penanggung_jawab', 'ilike', "%{$s}%")
+                  ->orWhereHas('alkes', function ($aq) use ($s) {
+                      $aq->where('nama_barang', 'ilike', "%{$s}%")
+                         ->orWhere('nomor_seri', 'ilike', "%{$s}%");
                   });
             });
         }
@@ -36,11 +36,13 @@ class MutasiAlkesController extends Controller
             $query->where('ruangan_tujuan_id', $request->ruangan_tujuan_id);
         }
 
-        $perPage = $request->per_page === 'all' ? 250 : min(max((int) $request->get('per_page', 50), 1), 250);
+        $isAll = $request->per_page === 'all';
+        $perPage = $isAll ? max(1, (clone $query)->count()) : min(max((int) $request->get('per_page', 50), 1), 500);
         $mutasiList = $query->latest()->paginate($perPage)->withQueryString();
         $ruanganList = Ruangan::orderBy('nama_ruangan', 'asc')->get();
+        $totalDipindahkan = Alkes::whereColumn('ruangan_id', '!=', 'lokasi_ruangan_id')->count();
 
-        return view('mutasi.index', compact('mutasiList', 'ruanganList'));
+        return view('mutasi.index', compact('mutasiList', 'ruanganList', 'totalDipindahkan'));
     }
 
     public function create(Request $request)
@@ -52,59 +54,45 @@ class MutasiAlkesController extends Controller
         return view('mutasi.create', compact('alkesList', 'ruanganList', 'selectedAlkesId'));
     }
 
-    public function store(\App\Http\Requests\StoreMutasiRequest $request)
+    public function store(Request $request)
     {
-        $validated = $request->validated();
+        $validated = $request->validate([
+            'alkes_id' => 'required|exists:alkes,id',
+            'ruangan_tujuan_id' => 'required|exists:ruangan,id',
+            'pemohon' => 'required|string|max:255',
+            'penanggung_jawab' => 'required|string|max:255',
+            'alasan_mutasi' => 'required|string',
+        ]);
 
-        DB::transaction(function () use ($validated, $request) {
+        DB::transaction(function () use ($validated) {
             $alkes = Alkes::where('id', $validated['alkes_id'])->lockForUpdate()->firstOrFail();
             $ruanganAsalId = $alkes->lokasi_ruangan_id ?? $alkes->ruangan_id;
-
-            // Validasi hak akses: Peran ruangan hanya boleh memutasikan alat di ruangannya
-            if (session('user_role') === 'ruangan' && session('user_ruangan_id')) {
-                $userRuanganId = (int) session('user_ruangan_id');
-                if ($alkes->ruangan_id !== $userRuanganId && $alkes->lokasi_ruangan_id !== $userRuanganId) {
-                    abort(403, 'Akses Ditolak: Anda hanya berwenang memindahkan alat kesehatan milik atau yang berada di ruangan Anda.');
-                }
-            }
-
-            if ($alkes->status === \App\Enums\StatusAlkes::DIPINJAM) {
-                abort(422, 'Alat sedang dalam status dipinjam. Harap kembalikan terlebih dahulu sebelum memindahkan lokasi.');
-            }
-
-            if ($ruanganAsalId == $validated['ruangan_tujuan_id']) {
-                abort(422, 'Ruangan tujuan harus berbeda dari ruangan asal fisik saat ini!');
-            }
 
             $mutasi = MutasiAlkes::create([
                 'alkes_id' => $alkes->id,
                 'ruangan_asal_id' => $ruanganAsalId,
                 'ruangan_tujuan_id' => $validated['ruangan_tujuan_id'],
-                'tanggal_mutasi' => now(),
                 'pemohon' => $validated['pemohon'],
                 'penanggung_jawab' => $validated['penanggung_jawab'],
                 'alasan_mutasi' => $validated['alasan_mutasi'],
-                'status_persetujuan' => 'Disetujui',
+                'tanggal_mutasi' => now(),
+                'status' => 'Selesai',
             ]);
+
+            $ruanganTujuan = Ruangan::find($validated['ruangan_tujuan_id']);
 
             $alkes->update([
                 'lokasi_ruangan_id' => $validated['ruangan_tujuan_id'],
+                'lokasi_saat_ini_note' => "Dipindahkan ke {$ruanganTujuan->nama_ruangan}",
             ]);
 
-            $mutasi->load(['ruanganAsal', 'ruanganTujuan']);
-            $rAsal = $mutasi->ruanganAsal->nama_ruangan ?? 'Ruangan Asal';
-            $rTujuan = $mutasi->ruanganTujuan->nama_ruangan ?? 'Ruangan Tujuan';
-
             ActivityLog::record(
-                'Pindah Ruangan Alkes',
-                "Memindahkan lokasi fisik unit '{$alkes->nama_barang}' ({$alkes->kode_inventaris}) dari {$rAsal} ke {$rTujuan}.",
-                $rTujuan
+                'Mutasi Ruangan',
+                "Alat '{$alkes->nama_barang}' (SN: " . ($alkes->nomor_seri ?: '-') . ") dipindahkan ke {$ruanganTujuan->nama_ruangan} oleh {$validated['pemohon']}.",
+                $ruanganTujuan->nama_ruangan
             );
-            
-            $request->session()->flash('mutasi_tujuan', $rTujuan);
         });
 
-        return redirect()->route('mutasi.index')
-            ->with('success', "Proses pemindahan lokasi unit alkes ke " . session('mutasi_tujuan') . " berhasil!");
+        return redirect()->route('mutasi.index')->with('success', 'Mutasi perpindahan alat berhasil dicatat ke database.');
     }
 }

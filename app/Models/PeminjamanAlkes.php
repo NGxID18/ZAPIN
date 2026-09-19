@@ -2,15 +2,13 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class PeminjamanAlkes extends Model
 {
-    use HasFactory;
-
     protected $table = 'peminjaman_alkes';
+
     protected $fillable = [
         'alkes_id',
         'ruangan_peminjam_id',
@@ -38,3 +36,4 @@ class PeminjamanAlkes extends Model
         return $this->belongsTo(Ruangan::class, 'ruangan_peminjam_id');
     }
 }
+

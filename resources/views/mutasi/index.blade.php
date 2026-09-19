@@ -6,8 +6,8 @@
 <div class="space-y-6">
 
     @php
-        $totalMutasi = $mutasiList->total();
-        $totalDipindahkan = \App\Models\Alkes::whereColumn('ruangan_id', '!=', 'lokasi_ruangan_id')->count();
+        $totalMutasi = method_exists($mutasiList, 'total') ? $mutasiList->total() : (is_countable($mutasiList) ? count($mutasiList) : 0);
+        $totalDipindahkan = $totalDipindahkan ?? 0;
     @endphp
 
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">

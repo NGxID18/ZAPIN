@@ -11,10 +11,10 @@ class RuanganController extends Controller
         $ruanganList = Ruangan::withCount([
             'alkesLokasi as alkes_count',
             'alkesLokasi as alkes_baik_count' => function ($q) {
-                $q->where('kondisi', 'baik');
+                $q->where('kondisi', 'BAIK');
             },
             'alkesLokasi as alkes_rusak_count' => function ($q) {
-                $q->where('kondisi', '!=', 'baik');
+                $q->where('kondisi', 'LIKE', '%RUSAK%');
             }
         ])
         ->orderBy('nama_ruangan', 'asc')

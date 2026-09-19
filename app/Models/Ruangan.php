@@ -2,20 +2,16 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Ruangan extends Model
 {
-    use HasFactory;
-
     protected $table = 'ruangan';
 
     protected $fillable = [
-        'kode_ruangan',
         'nama_ruangan',
-        'penanggung_jawab',
+        'kode_ruangan',
     ];
 
     public function alkes(): HasMany
@@ -27,9 +23,5 @@ class Ruangan extends Model
     {
         return $this->hasMany(Alkes::class, 'lokasi_ruangan_id');
     }
-
-    public function peminjaman(): HasMany
-    {
-        return $this->hasMany(PeminjamanAlkes::class, 'ruangan_peminjam_id');
-    }
 }
+

@@ -2,25 +2,22 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class MutasiAlkes extends Model
 {
-    use HasFactory;
-
     protected $table = 'mutasi_alkes';
 
     protected $fillable = [
         'alkes_id',
         'ruangan_asal_id',
         'ruangan_tujuan_id',
-        'tanggal_mutasi',
         'pemohon',
         'penanggung_jawab',
         'alasan_mutasi',
-        'status_persetujuan',
+        'tanggal_mutasi',
+        'status',
     ];
 
     protected $casts = [
@@ -42,3 +39,4 @@ class MutasiAlkes extends Model
         return $this->belongsTo(Ruangan::class, 'ruangan_tujuan_id');
     }
 }
+

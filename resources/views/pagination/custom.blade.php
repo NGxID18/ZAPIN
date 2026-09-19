@@ -37,9 +37,9 @@
             </div>
         </div>
 
-        <div class="flex items-center gap-4 flex-wrap">
+        <div class="flex items-center gap-3 flex-wrap">
             @if ($paginator->lastPage() > 1 && $currentPerPage !== 'all')
-                <form method="GET" action="{{ url()->current() }}" class="flex items-center gap-1.5 font-bold text-slate-700">
+                <form method="GET" action="{{ url()->current() }}" class="flex items-center gap-1.5 font-bold text-slate-700 bg-white px-2.5 py-1 rounded-xl border border-slate-300 shadow-2xs">
                     @foreach (request()->except(['page', '_token']) as $key => $val)
                         @if (is_array($val))
                             @foreach ($val as $subVal)
@@ -50,16 +50,18 @@
                         @endif
                     @endforeach
 
-                    <span class="text-slate-700 text-xs">Ke Halaman:</span>
+                    <span class="text-slate-600 text-xs font-semibold">Hal.</span>
                     <input type="number"
                            name="page"
                            min="1"
                            max="{{ $paginator->lastPage() }}"
                            value="{{ $paginator->currentPage() }}"
-                           class="w-14 px-2 py-1 bg-white border border-slate-300 rounded-lg text-center font-extrabold text-slate-900 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
-                           title="Ketik nomor halaman lalu tekan Enter">
-                    <button type="submit" class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs transition shadow-xs">
-                        Lompat
+                           class="w-12 h-7 px-1 bg-slate-50 border border-slate-300 rounded-lg text-center font-extrabold text-slate-900 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                           title="Ketik nomor halaman lalu tekan Enter atau klik Tuju">
+                    <span class="text-slate-400 text-xs font-semibold">/ {{ $paginator->lastPage() }}</span>
+                    <button type="submit" class="h-7 px-2.5 bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 text-white rounded-lg font-bold text-xs transition flex items-center gap-1 shadow-2xs" title="Tuju Halaman">
+                        <span>Tuju</span>
+                        <i class="ri-arrow-right-line text-[11px]"></i>
                     </button>
                 </form>
             @endif
@@ -67,12 +69,12 @@
             @if ($paginator->hasPages() && $currentPerPage !== 'all')
                 <div class="flex items-center gap-1 overflow-x-auto max-w-full">
                     @if ($paginator->onFirstPage())
-                        <span class="px-2.5 py-1 text-slate-400 bg-slate-200 rounded-lg text-xs font-bold cursor-not-allowed">
-                            <i class="ri-arrow-left-s-line"></i>
+                        <span class="w-8 h-8 flex items-center justify-center text-slate-400 bg-slate-200/70 rounded-lg text-xs font-bold cursor-not-allowed">
+                            <i class="ri-arrow-left-s-line text-sm"></i>
                         </span>
                     @else
-                        <a href="{{ $paginator->previousPageUrl() }}" class="px-2.5 py-1 text-slate-800 bg-white hover:bg-emerald-50 hover:text-emerald-800 border border-slate-300 rounded-lg text-xs font-bold transition">
-                            <i class="ri-arrow-left-s-line"></i>
+                        <a href="{{ $paginator->previousPageUrl() }}" class="w-8 h-8 flex items-center justify-center text-slate-800 bg-white hover:bg-emerald-50 hover:text-emerald-800 border border-slate-300 rounded-lg text-xs font-bold transition shadow-2xs" title="Halaman Sebelumnya">
+                            <i class="ri-arrow-left-s-line text-sm"></i>
                         </a>
                     @endif
 
@@ -90,15 +92,15 @@
                     @php $prevNum = 0; @endphp
                     @foreach ($pagesToDisplay as $page)
                         @if ($prevNum > 0 && $page - $prevNum > 1)
-                            <span class="px-1.5 py-1 text-slate-500 font-bold text-xs select-none">&middot;&middot;&middot;</span>
+                            <span class="px-1.5 py-1 text-slate-400 font-bold text-xs select-none">&middot;&middot;&middot;</span>
                         @endif
 
                         @if ($page == $currentPage)
-                            <span class="px-3 py-1 bg-emerald-600 text-white font-extrabold text-xs rounded-lg shadow-xs">
+                            <span class="min-w-[2rem] h-8 px-2 flex items-center justify-center bg-emerald-700 text-white font-black text-xs rounded-lg shadow-xs">
                                 {{ $page }}
                             </span>
                         @else
-                            <a href="{{ $paginator->url($page) }}" class="px-3 py-1 bg-white hover:bg-emerald-50 text-slate-800 hover:text-emerald-800 border border-slate-300 rounded-lg text-xs font-bold transition">
+                            <a href="{{ $paginator->url($page) }}" class="min-w-[2rem] h-8 px-2 flex items-center justify-center bg-white hover:bg-emerald-50 text-slate-800 hover:text-emerald-800 border border-slate-300 rounded-lg text-xs font-bold transition shadow-2xs">
                                 {{ $page }}
                             </a>
                         @endif
@@ -107,12 +109,12 @@
                     @endforeach
 
                     @if ($paginator->hasMorePages())
-                        <a href="{{ $paginator->nextPageUrl() }}" class="px-2.5 py-1 text-slate-800 bg-white hover:bg-emerald-50 hover:text-emerald-800 border border-slate-300 rounded-lg text-xs font-bold transition">
-                            <i class="ri-arrow-right-s-line"></i>
+                        <a href="{{ $paginator->nextPageUrl() }}" class="w-8 h-8 flex items-center justify-center text-slate-800 bg-white hover:bg-emerald-50 hover:text-emerald-800 border border-slate-300 rounded-lg text-xs font-bold transition shadow-2xs" title="Halaman Berikutnya">
+                            <i class="ri-arrow-right-s-line text-sm"></i>
                         </a>
                     @else
-                        <span class="px-2.5 py-1 text-slate-400 bg-slate-200 rounded-lg text-xs font-bold cursor-not-allowed">
-                            <i class="ri-arrow-right-s-line"></i>
+                        <span class="w-8 h-8 flex items-center justify-center text-slate-400 bg-slate-200/70 rounded-lg text-xs font-bold cursor-not-allowed">
+                            <i class="ri-arrow-right-s-line text-sm"></i>
                         </span>
                     @endif
                 </div>

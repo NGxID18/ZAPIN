@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\StatusAlkes;
 use App\Models\ActivityLog;
 use App\Models\Alkes;
 use App\Models\PeminjamanAlkes;
@@ -17,12 +16,12 @@ class PeminjamanAlkesController extends Controller
         $query = PeminjamanAlkes::with(['alkes.ruangan', 'ruanganPeminjam']);
 
         if ($request->filled('search')) {
-            $escaped = addcslashes(trim($request->search), '%_');
-            $query->where(function ($q) use ($escaped) {
-                $q->where('peminjam_nama', 'like', "%{$escaped}%")
-                  ->orWhereHas('alkes', function ($aq) use ($escaped) {
-                      $aq->where('nama_barang', 'like', "%{$escaped}%")
-                         ->orWhere('nomor_seri', 'like', "%{$escaped}%");
+            $s = trim($request->search);
+            $query->where(function ($q) use ($s) {
+                $q->where('peminjam_nama', 'ilike', "%{$s}%")
+                  ->orWhereHas('alkes', function ($aq) use ($s) {
+                      $aq->where('nama_barang', 'ilike', "%{$s}%")
+                         ->orWhere('nomor_seri', 'ilike', "%{$s}%");
                   });
             });
         }
@@ -31,34 +30,33 @@ class PeminjamanAlkesController extends Controller
             $query->where('status', $request->status);
         }
 
-        $perPage = $request->per_page === 'all' ? 250 : min(max((int) $request->get('per_page', 50), 1), 250);
+        $isAll = $request->per_page === 'all';
+        $perPage = $isAll ? max(1, (clone $query)->count()) : min(max((int) $request->get('per_page', 50), 1), 500);
         $peminjamanList = $query->latest()->paginate($perPage)->withQueryString();
-        $ruanganList = \Illuminate\Support\Facades\Cache::remember('ruangan_list', 86400, fn() => Ruangan::orderBy('nama_ruangan', 'asc')->get());
+        $ruanganList = Ruangan::orderBy('nama_ruangan', 'asc')->get();
         $availableAlkes = Alkes::with('ruangan')
-            ->where('status', StatusAlkes::TERSEDIA->value)
+            ->where('status', 'Tersedia')
             ->orderBy('nama_barang', 'asc')
             ->get();
 
         return view('peminjaman.index', compact('peminjamanList', 'ruanganList', 'availableAlkes'));
     }
 
-    public function store(\App\Http\Requests\StorePeminjamanRequest $request)
+    public function store(Request $request)
     {
-        $validated = $request->validated();
-
-        // Otorisasi: Petugas ruangan hanya boleh meminjam atas nama ruangannya sendiri
-        if (session('user_role') === 'ruangan' && session('user_ruangan_id')) {
-            $userRuanganId = (int) session('user_ruangan_id');
-            if ((int) $validated['ruangan_peminjam_id'] !== $userRuanganId) {
-                abort(403, 'Akses Ditolak: Anda hanya berwenang mengajukan peminjaman atas nama ruangan Anda sendiri.');
-            }
-        }
+        $validated = $request->validate([
+            'alkes_id' => 'required|exists:alkes,id',
+            'ruangan_peminjam_id' => 'required|exists:ruangan,id',
+            'peminjam_nama' => 'required|string|max:255',
+            'tanggal_pinjam' => 'required|date',
+            'estimasi_kembali' => 'required|date|after_or_equal:tanggal_pinjam',
+            'keterangan' => 'nullable|string',
+        ]);
 
         DB::transaction(function () use ($validated) {
             $alkes = Alkes::where('id', $validated['alkes_id'])->lockForUpdate()->firstOrFail();
-            
-            $statusVal = $alkes->status instanceof StatusAlkes ? $alkes->status->value : (string) $alkes->status;
-            if ($statusVal !== StatusAlkes::TERSEDIA->value) {
+
+            if ($alkes->status !== 'Tersedia') {
                 abort(422, 'Alat ini sedang tidak tersedia untuk dipinjam.');
             }
 
@@ -71,18 +69,18 @@ class PeminjamanAlkesController extends Controller
                 'tanggal_pinjam' => $validated['tanggal_pinjam'],
                 'estimasi_kembali' => $validated['estimasi_kembali'],
                 'status' => 'Dipinjam',
-                'keterangan' => $validated['keterangan'],
+                'keterangan' => $validated['keterangan'] ?? null,
             ]);
 
             $alkes->update([
-                'status' => StatusAlkes::DIPINJAM->value,
+                'status' => 'Dipinjam',
                 'lokasi_saat_ini_note' => 'Dipinjam oleh ' . $validated['peminjam_nama'] . ' - ' . $ruanganPeminjam->nama_ruangan,
             ]);
 
             ActivityLog::record(
                 'Peminjaman Alat',
-                "Alat '{$alkes->nama_barang}' (SN: {$alkes->nomor_seri}) dipinjam oleh {$validated['peminjam_nama']} ({$ruanganPeminjam->nama_ruangan})",
-                session('user_role_label', 'Petugas Ruangan')
+                "Alat '{$alkes->nama_barang}' (SN: " . ($alkes->nomor_seri ?: '-') . ") dipinjam oleh {$validated['peminjam_nama']} ({$ruanganPeminjam->nama_ruangan}).",
+                $ruanganPeminjam->nama_ruangan
             );
         });
 
@@ -98,33 +96,26 @@ class PeminjamanAlkesController extends Controller
                 abort(422, 'Peminjaman alat ini sudah dikembalikan sebelumnya.');
             }
 
-            $alkes = Alkes::where('id', $peminjaman->alkes_id)->lockForUpdate()->firstOrFail();
-
-            // Otorisasi BOLA: Hanya ruangan peminjam, ruangan pemilik alat, atau elektromedis yang berhak menyelesaikan pengembalian
-            if (session('user_role') === 'ruangan' && session('user_ruangan_id')) {
-                $userRuanganId = (int) session('user_ruangan_id');
-                if ((int) $peminjaman->ruangan_peminjam_id !== $userRuanganId && (int) $alkes->ruangan_id !== $userRuanganId) {
-                    abort(403, 'Akses Ditolak: Hanya ruangan peminjam, ruangan pemilik alat, atau Instalasi Elektromedis yang berwenang menandai pengembalian.');
-                }
-            }
-
             $peminjaman->update([
                 'status' => 'Dikembalikan',
                 'tanggal_dikembalikan' => now(),
             ]);
 
-            $alkes->update([
-                'status' => StatusAlkes::TERSEDIA->value,
-                'lokasi_saat_ini_note' => null,
-            ]);
+            $alkes = Alkes::where('id', $peminjaman->alkes_id)->lockForUpdate()->first();
+            if ($alkes) {
+                $alkes->update([
+                    'status' => 'Tersedia',
+                    'lokasi_saat_ini_note' => null,
+                ]);
 
-            ActivityLog::record(
-                'Pengembalian Alat',
-                "Alat '{$alkes->nama_barang}' telah dikembalikan dari peminjaman.",
-                session('user_role_label', 'Admin/Petugas')
-            );
+                ActivityLog::record(
+                    'Pengembalian Alat',
+                    "Alat '{$alkes->nama_barang}' (SN: " . ($alkes->nomor_seri ?: '-') . ") telah dikembalikan ke ruangan asal.",
+                    $alkes->ruangan->nama_ruangan ?? null
+                );
+            }
         });
 
-        return redirect()->route('peminjaman.index')->with('success', 'Alat berhasil dikembalikan ke lokasi asalnya.');
+        return redirect()->route('peminjaman.index')->with('success', 'Alat kesehatan berhasil ditandai telah dikembalikan ke ruangan asal.');
     }
 }

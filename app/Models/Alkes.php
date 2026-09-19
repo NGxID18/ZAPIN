@@ -2,77 +2,50 @@
 
 namespace App\Models;
 
-use App\Enums\KondisiAlkes;
-use App\Enums\StatusAlkes;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Alkes extends Model
 {
-    use HasFactory;
-
     protected $table = 'alkes';
 
     protected $fillable = [
+        'no_urut',
         'kode_inventaris',
         'nama_barang',
-        'nomenklatur_id',
         'merk',
         'tipe',
         'nomor_seri',
-        'tahun_pengadaan',
+        'tahun',
         'jumlah',
         'cara_perolehan',
         'nilai_perolehan',
+        'distributor',
         'ruangan_id',
         'lokasi_ruangan_id',
         'lokasi_saat_ini_note',
-        'status',
         'kondisi',
+        'status',
+        'aspak',
+        'kib',
+        'non_kib_dan_aspak',
+        'akl_akd',
         'status_kalibrasi',
-        'aspak_status',
-        'kib_status',
         'tanggal_kalibrasi_terakhir',
         'tanggal_kalibrasi_berikutnya',
         'sertifikat_kalibrasi',
         'sertifikat_kalibrasi_history',
-        'foto_alat',
         'keterangan',
     ];
 
     protected $casts = [
-        'status' => StatusAlkes::class,
-        'kondisi' => KondisiAlkes::class,
+        'no_urut' => 'integer',
         'jumlah' => 'integer',
-        'nilai_perolehan' => 'decimal:2',
-        'kib_status' => 'boolean',
         'tanggal_kalibrasi_terakhir' => 'date',
         'tanggal_kalibrasi_berikutnya' => 'date',
         'sertifikat_kalibrasi_history' => 'array',
     ];
-
-    public function getStatusEnumAttribute(): StatusAlkes
-    {
-        if ($this->status instanceof StatusAlkes) {
-            return $this->status;
-        }
-        return StatusAlkes::tryFrom($this->status) ?? StatusAlkes::TERSEDIA;
-    }
-
-    public function getKondisiEnumAttribute(): KondisiAlkes
-    {
-        if ($this->kondisi instanceof KondisiAlkes) {
-            return $this->kondisi;
-        }
-        return KondisiAlkes::tryFrom($this->kondisi) ?? KondisiAlkes::BAIK;
-    }
-
-    public function nomenklatur(): BelongsTo
-    {
-        return $this->belongsTo(Nomenklatur::class, 'nomenklatur_id');
-    }
 
     public function ruangan(): BelongsTo
     {
@@ -104,26 +77,70 @@ class Alkes extends Model
         return $this->ruangan_id !== $this->lokasi_ruangan_id;
     }
 
-    public function scopeSearch($query, $search)
+    public function getTahunPengadaanAttribute(): ?string
     {
-        $escaped = addcslashes($search, '%_');
+        return $this->tahun;
+    }
 
-        return $query->where(function ($q) use ($escaped) {
-            $q->where('nama_barang', 'like', "%{$escaped}%")
-              ->orWhere('merk', 'like', "%{$escaped}%")
-              ->orWhere('tipe', 'like', "%{$escaped}%")
-              ->orWhere('nomor_seri', 'like', "%{$escaped}%")
-              ->orWhere('tahun_pengadaan', 'like', "%{$escaped}%")
-              ->orWhere('jumlah', 'like', "%{$escaped}%")
-              ->orWhere('lokasi_saat_ini_note', 'like', "%{$escaped}%")
-              ->orWhere('kondisi', 'like', "%{$escaped}%")
-              ->orWhere('aspak_status', 'like', "%{$escaped}%")
-              ->orWhere('keterangan', 'like', "%{$escaped}%")
-              ->orWhereHas('ruangan', function ($rq) use ($escaped) {
-                  $rq->where('nama_ruangan', 'like', "%{$escaped}%")
-                    ->orWhere('kode_ruangan', 'like', "%{$escaped}%");
-              });
-        });
+    public function getKondisiEnumAttribute(): object
+    {
+        $val = trim($this->kondisi ?? '');
+        $upper = strtoupper($val);
+
+        if (str_contains($upper, 'BERAT')) {
+            return new class($val) {
+                public function __construct(private string $val) {}
+                public function label(): string { return $this->val ?: 'Rusak Berat'; }
+                public function warnaBadge(): string { return 'bg-rose-100 text-rose-800 border-rose-300'; }
+            };
+        }
+
+        if (str_contains($upper, 'RINGAN')) {
+            return new class($val) {
+                public function __construct(private string $val) {}
+                public function label(): string { return $this->val ?: 'Rusak Ringan'; }
+                public function warnaBadge(): string { return 'bg-amber-100 text-amber-800 border-amber-300'; }
+            };
+        }
+
+        if ($upper === 'BAIK') {
+            return new class($val) {
+                public function __construct(private string $val) {}
+                public function label(): string { return 'Baik'; }
+                public function warnaBadge(): string { return 'bg-emerald-100 text-emerald-800 border-emerald-300'; }
+            };
+        }
+
+        // Jika kondisi kosong di spreadsheet
+        return new class($val) {
+            public function __construct(private string $val) {}
+            public function label(): string { return '-'; }
+            public function warnaBadge(): string { return 'bg-slate-100 text-slate-600 border-slate-200'; }
+        };
+    }
+
+    public function getStatusEnumAttribute(): object
+    {
+        $status = $this->status ?? 'Tersedia';
+
+        if ($status === 'Dipinjam') {
+            return new class {
+                public function label(): string { return 'Dipinjam'; }
+                public function warnaBadge(): string { return 'bg-blue-100 text-blue-800 border-blue-300'; }
+            };
+        }
+
+        if ($status === 'Dalam Perbaikan') {
+            return new class {
+                public function label(): string { return 'Dalam Perbaikan'; }
+                public function warnaBadge(): string { return 'bg-amber-100 text-amber-800 border-amber-300'; }
+            };
+        }
+
+        return new class {
+            public function label(): string { return 'Tersedia'; }
+            public function warnaBadge(): string { return 'bg-emerald-100 text-emerald-800 border-emerald-300'; }
+        };
     }
 
     public function scopeAccessibleByCurrentRole($query)
@@ -136,30 +153,5 @@ class Alkes extends Model
             });
         }
         return $query;
-    }
-
-    public static function generateKodeInventaris(string $prefix = 'ALT'): string
-    {
-        $year = date('Y');
-        $basePrefix = "{$prefix}-{$year}-";
-
-        $maxExisting = self::where('kode_inventaris', 'like', "{$basePrefix}%")
-            ->orderBy('id', 'desc')
-            ->value('kode_inventaris');
-
-        $nextNum = 1;
-        if ($maxExisting && preg_match('/-(\d+)$/', $maxExisting, $matches)) {
-            $nextNum = ((int) $matches[1]) + 1;
-        } else {
-            $count = (int) self::where('kode_inventaris', 'like', "{$basePrefix}%")->count();
-            $nextNum = $count + 1;
-        }
-
-        do {
-            $candidate = $basePrefix . str_pad((string) $nextNum, 4, '0', STR_PAD_LEFT);
-            $nextNum++;
-        } while (self::where('kode_inventaris', $candidate)->exists());
-
-        return $candidate;
     }
 }

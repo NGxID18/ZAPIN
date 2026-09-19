@@ -2,7 +2,6 @@
 
 namespace App\Providers;
 
-use App\Models\Notification;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
@@ -22,16 +21,12 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         View::composer('layouts.app', function ($view) {
-            $unreadNotifCount = Notification::where('dibaca', false)->count();
-            $recentNotifs = Notification::with('ruanganAsal')->latest()->take(5)->get();
-
             $view->with([
-                'unreadNotifCount' => $unreadNotifCount,
-                'recentNotifs' => $recentNotifs,
+                'unreadNotifCount' => 0,
+                'recentNotifs' => collect([]),
                 'currentRole' => session('user_role'),
                 'userRoleLabel' => session('user_role_label', 'Pengguna ZAPIN'),
             ]);
         });
     }
 }
-

@@ -18,7 +18,7 @@
     <div class="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-sm">
         <form method="GET" action="{{ route('activity-logs.index') }}" class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
             <div>
-                <label class="block text-xs font-bold text-slate-800 mb-1.5 uppercase">Cari Deskripsi / Pengguna / Ruangan</label>
+                <label class="block text-xs font-bold text-slate-800 mb-1.5 uppercase">Cari Deskripsi / Ruangan</label>
                 <div class="relative">
                     <input type="text" name="search" value="{{ request('search') }}" placeholder="Ketik kata kunci..." class="w-full pl-10 pr-4 h-11 bg-white border border-slate-300 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 transition">
                     <i class="ri-search-line absolute left-3.5 top-3 text-slate-400 text-base"></i>
@@ -54,10 +54,9 @@
                 <thead>
                     <tr class="bg-emerald-950 text-white border-b border-emerald-900 text-xs font-black uppercase tracking-wider">
                         <th class="px-4 py-3.5 border-r border-emerald-900">Waktu & Tanggal</th>
-                        <th class="px-4 py-3.5 border-r border-emerald-900">Peran & Ruangan</th>
+                        <th class="px-4 py-3.5 border-r border-emerald-900">Ruangan</th>
                         <th class="px-4 py-3.5 border-r border-emerald-900">Aktivitas</th>
-                        <th class="px-4 py-3.5 border-r border-emerald-900">Deskripsi Perubahan</th>
-                        <th class="px-4 py-3.5 text-center">IP Address</th>
+                        <th class="px-4 py-3.5">Deskripsi Perubahan</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-200 text-sm font-medium text-slate-900">
@@ -84,8 +83,7 @@
                             </td>
 
                             <td class="px-4 py-3.5 border-r border-slate-200">
-                                <div class="font-extrabold text-slate-900 text-sm">{{ $log->user_role }}</div>
-                                <div class="text-xs text-slate-600 font-bold mt-0.5">{{ $log->ruangan_name ?? 'Pusat' }}</div>
+                                <div class="font-bold text-slate-900 text-sm">{{ $log->ruangan_name ?: ($log->user_role === 'elektromedis' ? 'Instalasi Elektromedis' : ($log->user_role === 'tata_usaha' ? 'Manajemen & Penunjang' : 'Pusat')) }}</div>
                             </td>
 
                             <td class="px-4 py-3.5 border-r border-slate-200">
@@ -94,17 +92,13 @@
                                 </span>
                             </td>
 
-                            <td class="px-4 py-3.5 border-r border-slate-200">
+                            <td class="px-4 py-3.5">
                                 <p class="text-xs text-slate-900 font-semibold leading-relaxed">{{ $log->description }}</p>
-                            </td>
-
-                            <td class="px-4 py-3.5 text-center font-mono text-xs font-bold text-slate-700">
-                                {{ $log->ip_address }}
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="5" class="px-6 py-12 text-center text-slate-700 font-bold">
+                            <td colspan="4" class="px-6 py-12 text-center text-slate-700 font-bold">
                                 <i class="ri-history-line text-5xl block mb-3 text-slate-400"></i>
                                 Belum ada catatan aktivitas tercatat.
                             </td>

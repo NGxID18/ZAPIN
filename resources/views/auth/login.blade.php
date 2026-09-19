@@ -9,8 +9,6 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
 
     <style>
         body, input, button, select, textarea { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
@@ -19,43 +17,31 @@
         .role-option:hover { transform: translateY(-1px); }
         .role-option.selected { border-color: #facc15 !important; background-color: #065f46 !important; }
 
-        .ts-control {
-            background-color: #064e3b !important;
-            border: 1.5px solid #facc15 !important;
-            border-radius: 0.625rem !important;
-            padding: 0.6rem 0.875rem !important;
-            font-size: 0.875rem !important;
-            font-weight: 700 !important;
-            color: #ffffff !important;
-        }
-        .ts-wrapper.dropdown-active .ts-control {
-            border-bottom-left-radius: 0 !important;
-            border-bottom-right-radius: 0 !important;
-        }
-        .ts-dropdown {
-            background-color: #064e3b !important;
-            border: 1.5px solid #facc15 !important;
-            border-radius: 0.625rem !important;
-            color: #ffffff !important;
-            box-shadow: 0 20px 40px -8px rgba(0, 0, 0, 0.8) !important;
-            z-index: 999999 !important;
-            max-height: 200px !important;
-            overflow-y: auto !important;
-        }
-        .ts-dropdown .option {
-            padding: 0.65rem 0.875rem !important;
-            color: #ffffff !important;
-            font-size: 0.875rem !important;
-            font-weight: 600 !important;
-        }
-        .ts-dropdown .option:hover, .ts-dropdown .option.active {
-            background-color: #059669 !important;
-            color: #facc15 !important;
-        }
-        .ts-control input { color: #ffffff !important; }
-
         @keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
         .login-card { animation: fadeIn 0.4s ease-out; }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-4px); }
+            40%, 80% { transform: translateX(4px); }
+        }
+        .animate-shake { animation: shake 0.3s ease-in-out; }
+
+        /* Custom Scrollbar for room options */
+        #ruanganOptionsList::-webkit-scrollbar {
+            width: 5px;
+        }
+        #ruanganOptionsList::-webkit-scrollbar-track {
+            background: rgba(6, 78, 59, 0.5);
+            border-radius: 4px;
+        }
+        #ruanganOptionsList::-webkit-scrollbar-thumb {
+            background: #059669;
+            border-radius: 4px;
+        }
+        #ruanganOptionsList::-webkit-scrollbar-thumb:hover {
+            background: #10b981;
+        }
     </style>
 </head>
 <body class="h-screen w-screen overflow-hidden flex items-center justify-center p-4 relative bg-slate-950">
@@ -65,10 +51,8 @@
 
     <div class="login-card relative z-10 w-full max-w-md bg-slate-900/75 backdrop-blur-md border-2 border-emerald-400/60 rounded-2xl p-6 sm:p-8 shadow-2xl space-y-6">
 
-        <div class="text-center space-y-3">
-            <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500 via-teal-500 to-amber-400 text-white shadow-xl shadow-emerald-600/50 mx-auto flex items-center justify-center border-2 border-amber-300">
-                <svg class="w-10 h-10 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35zM10.5 11h3v3h2v-3h3V9h-3V6h-2v3h-3v2z"/></svg>
-            </div>
+        <!-- Header Title (Icon dihapus sesuai instruksi) -->
+        <div class="text-center space-y-2">
             <div>
                 <h2 class="text-3xl font-black text-white tracking-wider">ZAPIN</h2>
                 <p class="text-xs font-black text-amber-300 tracking-wider uppercase mt-1">RSJKO Engku Haji Daud</p>
@@ -76,55 +60,96 @@
             </div>
         </div>
 
-        <form method="POST" action="{{ route('login') }}" class="space-y-4">
+        @if (session('error') || $errors->any())
+            <div class="p-3 bg-rose-500/20 border border-rose-500/50 rounded-xl text-rose-200 text-xs font-bold flex items-center gap-2 animate-shake">
+                <i class="ri-error-warning-line text-rose-400 text-base shrink-0"></i>
+                <span>{{ session('error') ?? $errors->first() }}</span>
+            </div>
+        @endif
+
+        <form method="POST" action="{{ route('login') }}" class="space-y-4" id="loginForm">
             @csrf
 
             <div class="space-y-2.5">
-                <label class="block text-xs font-black text-amber-300 uppercase tracking-wider">PILIH PERAN AKSES</label>
+                <label class="block text-xs font-black text-amber-300 uppercase tracking-wider">MASUK SEBAGAI</label>
 
                 <div class="space-y-2.5">
-                    <label class="role-option selected flex items-center gap-3 p-3.5 bg-emerald-900/80 backdrop-blur-xs border-2 border-amber-400 rounded-xl cursor-pointer shadow-sm">
-                        <input type="radio" name="role" value="elektromedis" checked onchange="handleRoleChange(this)" class="w-4 h-4 text-amber-400 focus:ring-amber-400 border-slate-600 bg-transparent">
-                        <div>
-                            <p class="font-extrabold text-white text-sm">Instalasi Elektromedis</p>
-                            <p class="text-xs text-slate-100 font-semibold">Otoritas perbaikan & pengembalian unit alkes</p>
-                        </div>
+                    <!-- Peran 1: Elektromedis -->
+                    <label class="role-option selected flex items-center gap-3.5 p-3.5 bg-emerald-900/80 backdrop-blur-xs border-2 border-amber-400 rounded-xl cursor-pointer shadow-sm">
+                        <input type="radio" name="role" value="elektromedis" checked onchange="handleRoleChange(this)" class="w-4 h-4 text-amber-400 focus:ring-amber-400 border-slate-600 bg-transparent shrink-0">
+                        <span class="font-black text-white text-base">Instalasi Elektromedis</span>
                     </label>
 
-                    <label class="role-option flex items-center gap-3 p-3.5 bg-slate-900/60 backdrop-blur-xs border border-slate-700/80 rounded-xl cursor-pointer shadow-sm">
-                        <input type="radio" name="role" value="ruangan" onchange="handleRoleChange(this)" class="w-4 h-4 text-amber-400 focus:ring-amber-400 border-slate-600 bg-transparent">
-                        <div>
-                            <p class="font-extrabold text-white text-sm">Instalasi / Ruangan</p>
-                            <p class="text-xs text-slate-200 font-semibold">Pelaporan kerusakan & mutasi alkes</p>
-                        </div>
+                    <!-- Peran 2: Ruangan -->
+                    <label class="role-option flex items-center gap-3.5 p-3.5 bg-slate-900/60 backdrop-blur-xs border border-slate-700/80 rounded-xl cursor-pointer shadow-sm">
+                        <input type="radio" name="role" value="ruangan" onchange="handleRoleChange(this)" class="w-4 h-4 text-amber-400 focus:ring-amber-400 border-slate-600 bg-transparent shrink-0">
+                        <span class="font-black text-white text-base">Instalasi / Ruangan</span>
                     </label>
 
+                    <!-- Kontainer Dropdown Ruangan -->
                     <div id="ruanganDropdownContainer" class="overflow-hidden transition-all duration-250 ease-in-out" style="max-height:0;opacity:0">
-                        <div class="pt-1 pb-1 space-y-1.5">
+                        <div class="pt-1 pb-1 space-y-1.5 relative">
                             <label class="block text-xs font-black text-amber-300 uppercase tracking-wider">PILIH RUANGAN</label>
-                            <select id="ruanganSelect" name="ruangan_id" class="w-full">
-                                @foreach ($ruanganList as $ruang)
-                                    @if ($ruang->nama_ruangan !== 'Elektromedis')
-                                        <option value="{{ $ruang->id }}">{{ $ruang->nama_ruangan }}</option>
-                                    @endif
-                                @endforeach
-                            </select>
+
+                            <!-- Hidden input untuk disubmit ke form -->
+                            <input type="hidden" name="ruangan_id" id="ruanganIdInput" value="">
+
+                            <!-- Trigger Box: Desain Original #064e3b dengan Placeholder Transparan & Logo Panah Keatas/Kebawah -->
+                            <button type="button"
+                                    id="ruanganTriggerBtn"
+                                    onclick="toggleRuanganDropdown(event)"
+                                    class="w-full flex items-center justify-between text-left shadow-sm transition-all duration-150 focus:outline-none"
+                                    style="background-color: #064e3b; border: 1.5px solid #059669; border-radius: 0.625rem; padding: 0.6rem 0.875rem;">
+                                
+                                <span id="selectedRuanganText" class="text-white/40 font-semibold text-sm truncate select-none transition-colors duration-150">
+                                    Pilih Ruangan / Instalasi...
+                                </span>
+
+                                <!-- Logo Keatas & Kebawah (Dual Chevron Arrow) -->
+                                <div id="dropdownArrow" class="flex items-center text-emerald-300/80 transition-transform duration-200 shrink-0 ml-2">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 9l4-4 4 4m0 6l-4 4-4-4" />
+                                    </svg>
+                                </div>
+                            </button>
+
+                            <!-- Dropdown Menu List: Desain Original #064e3b dengan Animasi Buka/Tutup/Pilih Halus -->
+                            <div id="ruanganDropdownMenu"
+                                 class="absolute left-0 right-0 top-full mt-1.5 shadow-2xl z-50 overflow-hidden transition-all duration-200 ease-out origin-top pointer-events-none opacity-0 -translate-y-2 scale-98"
+                                 style="background-color: #064e3b; border: 1.5px solid #059669; border-radius: 0.625rem; max-height: 210px;">
+                                
+                                <div id="ruanganOptionsList" class="max-h-[200px] overflow-y-auto divide-y divide-emerald-800/40">
+                                    @foreach ($ruanganList as $ruang)
+                                        @if ($ruang->nama_ruangan !== 'Elektromedis')
+                                            <div onclick="selectRuangan({{ $ruang->id }}, '{{ addslashes($ruang->nama_ruangan) }}')"
+                                                 class="ruangan-option cursor-pointer transition-colors duration-100 flex items-center justify-between"
+                                                 style="padding: 0.65rem 0.875rem; color: #ffffff; font-size: 0.875rem; font-weight: 600;"
+                                                 onmouseover="this.style.backgroundColor='#059669'; this.style.color='#facc15';"
+                                                 onmouseout="if(document.getElementById('ruanganIdInput').value != '{{ $ruang->id }}'){ this.style.backgroundColor='transparent'; this.style.color='#ffffff'; }"
+                                                 data-id="{{ $ruang->id }}">
+                                                <span>{{ $ruang->nama_ruangan }}</span>
+                                            </div>
+                                        @endif
+                                    @endforeach
+                                </div>
+                            </div>
+
+                            <p id="ruanganErrorText" class="hidden text-rose-300 text-xs font-bold pt-0.5 flex items-center gap-1">
+                                <i class="ri-error-warning-line"></i> Silakan pilih ruangan terlebih dahulu.
+                            </p>
                         </div>
                     </div>
 
-                    <label class="role-option flex items-center gap-3 p-3.5 bg-slate-900/60 backdrop-blur-xs border border-slate-700/80 rounded-xl cursor-pointer shadow-sm">
-                        <input type="radio" name="role" value="tata_usaha" onchange="handleRoleChange(this)" class="w-4 h-4 text-amber-400 focus:ring-amber-400 border-slate-600 bg-transparent">
-                        <div>
-                            <p class="font-extrabold text-white text-sm">Manajemen / Penunjang</p>
-                            <p class="text-xs text-slate-200 font-semibold">Pengawasan inventaris</p>
-                        </div>
+                    <!-- Peran 3: Tata Usaha -->
+                    <label class="role-option flex items-center gap-3.5 p-3.5 bg-slate-900/60 backdrop-blur-xs border border-slate-700/80 rounded-xl cursor-pointer shadow-sm">
+                        <input type="radio" name="role" value="tata_usaha" onchange="handleRoleChange(this)" class="w-4 h-4 text-amber-400 focus:ring-amber-400 border-slate-600 bg-transparent shrink-0">
+                        <span class="font-black text-white text-base">Manajemen / Penunjang</span>
                     </label>
                 </div>
             </div>
 
-            <button type="submit" class="w-full py-3.5 bg-gradient-to-r from-emerald-600/90 to-emerald-700/90 hover:from-emerald-500 hover:to-emerald-600 text-white font-black text-base rounded-xl shadow-xl shadow-emerald-950/60 border border-amber-300/50 backdrop-blur-xs transition flex items-center justify-center gap-2">
-                <svg class="w-5 h-5 text-amber-300" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h6a3 3 0 013 3v1"/></svg>
-                Masuk ke ZAPIN
+            <button type="submit" class="w-full py-3.5 bg-gradient-to-r from-emerald-600/90 to-emerald-700/90 hover:from-emerald-500 hover:to-emerald-600 text-white font-black text-base rounded-xl shadow-xl shadow-emerald-950/60 border border-amber-300/50 backdrop-blur-xs transition flex items-center justify-center">
+                Masuk
             </button>
         </form>
 
@@ -134,19 +159,74 @@
     </div>
 
     <script>
-        let tsInstance = null;
+        let isDropdownOpen = false;
 
-        document.addEventListener('DOMContentLoaded', function() {
-            const sel = document.getElementById('ruanganSelect');
-            if (sel) {
-                tsInstance = new TomSelect('#ruanganSelect', {
-                    create: false,
-                    placeholder: 'Ketik nama ruangan...',
-                    maxOptions: 50,
-                    dropdownParent: 'body'
-                });
+        function toggleRuanganDropdown(e) {
+            if (e) e.stopPropagation();
+            if (isDropdownOpen) {
+                closeRuanganDropdown();
+            } else {
+                openRuanganDropdown();
             }
-        });
+        }
+
+        function openRuanganDropdown() {
+            const menu = document.getElementById('ruanganDropdownMenu');
+            const arrow = document.getElementById('dropdownArrow');
+            const btn = document.getElementById('ruanganTriggerBtn');
+
+            isDropdownOpen = true;
+
+            // Transisi animasi buka (slide down + fade in)
+            menu.classList.remove('pointer-events-none', 'opacity-0', '-translate-y-2', 'scale-98');
+            menu.classList.add('opacity-100', 'translate-y-0', 'scale-100');
+            arrow.classList.add('rotate-180', 'text-amber-300');
+            btn.style.borderColor = '#facc15';
+        }
+
+        function closeRuanganDropdown() {
+            const menu = document.getElementById('ruanganDropdownMenu');
+            const arrow = document.getElementById('dropdownArrow');
+            const btn = document.getElementById('ruanganTriggerBtn');
+
+            isDropdownOpen = false;
+
+            // Transisi animasi tutup (slide up + fade out)
+            menu.classList.remove('opacity-100', 'translate-y-0', 'scale-100');
+            menu.classList.add('pointer-events-none', 'opacity-0', '-translate-y-2', 'scale-98');
+            arrow.classList.remove('rotate-180', 'text-amber-300');
+            btn.style.borderColor = '#059669';
+        }
+
+        function selectRuangan(id, name) {
+            const idInput = document.getElementById('ruanganIdInput');
+            const textSpan = document.getElementById('selectedRuanganText');
+            const errorText = document.getElementById('ruanganErrorText');
+            const btn = document.getElementById('ruanganTriggerBtn');
+
+            idInput.value = id;
+
+            // Animasi transisi teks ruangan: dari transparan ke bold white
+            textSpan.textContent = name;
+            textSpan.className = "text-white font-bold text-sm truncate select-none transition-all duration-150";
+
+            // Update status visual opsi terpilih
+            document.querySelectorAll('.ruangan-option').forEach(opt => {
+                if (opt.dataset.id == id) {
+                    opt.style.backgroundColor = '#059669';
+                    opt.style.color = '#facc15';
+                } else {
+                    opt.style.backgroundColor = 'transparent';
+                    opt.style.color = '#ffffff';
+                }
+            });
+
+            if (errorText) errorText.classList.add('hidden');
+            if (btn) btn.classList.remove('animate-shake');
+
+            // Animasi tutup dropdown
+            closeRuanganDropdown();
+        }
 
         function handleRoleChange(radio) {
             document.querySelectorAll('.role-option').forEach(function(el) {
@@ -169,11 +249,48 @@
                     }
                 }, 250);
             } else {
+                closeRuanganDropdown();
                 container.style.overflow = 'hidden';
                 container.style.maxHeight = '0px';
                 container.style.opacity = '0';
             }
         }
+
+        // Event listener klik di luar untuk menutup dropdown
+        document.addEventListener('click', function(e) {
+            const container = document.getElementById('ruanganDropdownContainer');
+            if (isDropdownOpen && container && !container.contains(e.target)) {
+                closeRuanganDropdown();
+            }
+        });
+
+        // Event listener tombol Escape
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && isDropdownOpen) {
+                closeRuanganDropdown();
+            }
+        });
+
+        // Validasi Submit
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            const activeRole = document.querySelector('input[name="role"]:checked')?.value;
+            if (activeRole === 'ruangan') {
+                const idInput = document.getElementById('ruanganIdInput');
+                if (!idInput || !idInput.value) {
+                    e.preventDefault();
+                    const errorText = document.getElementById('ruanganErrorText');
+                    const btn = document.getElementById('ruanganTriggerBtn');
+                    if (errorText) errorText.classList.remove('hidden');
+                    if (btn) {
+                        btn.style.borderColor = '#f87171';
+                        btn.classList.add('animate-shake');
+                        setTimeout(() => btn.classList.remove('animate-shake'), 400);
+                    }
+                    openRuanganDropdown();
+                    return false;
+                }
+            }
+        });
     </script>
 </body>
 </html>

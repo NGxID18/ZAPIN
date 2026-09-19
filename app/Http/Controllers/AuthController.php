@@ -21,7 +21,9 @@ class AuthController extends Controller
     {
         $validated = $request->validate([
             'role' => 'required|string|in:elektromedis,ruangan,tata_usaha',
-            'ruangan_id' => 'nullable|integer|exists:ruangan,id',
+            'ruangan_id' => 'required_if:role,ruangan|nullable|integer|exists:ruangan,id',
+        ], [
+            'ruangan_id.required_if' => 'Silakan pilih ruangan terlebih dahulu.',
         ]);
 
         $request->session()->regenerate();
@@ -29,7 +31,7 @@ class AuthController extends Controller
         $role = $validated['role'];
 
         if ($role === 'elektromedis') {
-            $elektromedisRuang = Ruangan::where('nama_ruangan', 'Elektromedis')->first();
+            $elektromedisRuang = Ruangan::whereRaw('LOWER(nama_ruangan) LIKE ?', ['%elektro%'])->first();
             session([
                 'user_role' => 'elektromedis',
                 'user_role_label' => 'Instalasi Elektromedis',
@@ -65,6 +67,6 @@ class AuthController extends Controller
     {
         $request->session()->invalidate();
         $request->session()->regenerateToken();
-        return redirect()->route('login')->with('success', 'Anda telah keluar dari sistem ZAPIN.');
+        return redirect()->route('login');
     }
 }

@@ -51,6 +51,14 @@
         </div>
 
         <div class="flex items-center gap-2.5 shrink-0 flex-wrap">
+            <form method="POST" action="{{ route('alkes.sync-sheets') }}" class="inline" onsubmit="return confirm('Mulai sinkronisasi data dari Google Spreadsheet sekarang?')">
+                @csrf
+                <button type="submit" class="px-4 py-3 bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-2" title="Tarik data terbaru dari Google Spreadsheet ke PostgreSQL ZAPIN">
+                    <i class="ri-refresh-line text-lg"></i>
+                    <span>Sinkronkan Spreadsheet</span>
+                </button>
+            </form>
+
             <a href="{{ config('zapin.google_sheet_url') }}" target="_blank" rel="noopener noreferrer" class="px-4 py-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-300 font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-2" title="Buka Portal Google Sheets Live Data">
                 <i class="ri-file-excel-2-fill text-emerald-600 text-lg"></i>
                 <span>Buka Google Sheets</span>
