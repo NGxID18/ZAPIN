@@ -144,7 +144,7 @@ class AlkesController extends Controller
         return view('alkes.edit', compact('alkes', 'nomenklaturList', 'ruanganList', 'kondisis', 'statuses'));
     }
 
-    public function update(Request $request, $id)
+    public function update(Request $request, $id, GoogleSheetSyncService $syncService)
     {
         $alkes = Alkes::findOrFail($id);
 
@@ -154,17 +154,71 @@ class AlkesController extends Controller
             'tipe' => 'nullable|string|max:255',
             'nomor_seri' => 'nullable|string|max:255',
             'tahun' => 'nullable|string|max:10',
+            'tahun_pengadaan' => 'nullable|string|max:10',
+            'jumlah' => 'nullable|integer|min:1',
             'ruangan_id' => 'required|exists:ruangan,id',
             'kondisi' => 'nullable|string|max:50',
+            'status' => 'nullable|string|max:50',
+            'aspak_status' => 'nullable|string|max:50',
+            'kib_status' => 'nullable|string|max:50',
             'keterangan' => 'nullable|string',
         ]);
+
+        if (isset($validated['tahun_pengadaan']) && !empty($validated['tahun_pengadaan'])) {
+            $validated['tahun'] = $validated['tahun_pengadaan'];
+        }
+        if (isset($validated['aspak_status'])) {
+            $validated['aspak'] = $validated['aspak_status'];
+        }
+        if (isset($validated['kib_status'])) {
+            $validated['kib'] = $validated['kib_status'] == '1' ? 'TERDAFTAR' : 'NON KIB';
+        }
 
         $alkes->update($validated);
 
         ActivityLog::record('Update Alkes', "Pembaruan informasi data alkes '{$alkes->nama_barang}'.", $alkes->ruangan->nama_ruangan ?? null);
 
-        return redirect()->route('alkes.show', $alkes->id)
-            ->with('success', "Data alkes '{$alkes->nama_barang}' berhasil diperbarui.");
+        // Otomatis sinkronkan ke Google Spreadsheet via Apps Script Webhook
+        $syncResult = $syncService->pushUpdateToSheet($alkes->fresh());
+        $message = "Data alkes '{$alkes->nama_barang}' berhasil diperbarui.";
+        if (!empty($syncResult['success'])) {
+            $message .= " Data otomatis tersinkronisasi ke Google Spreadsheet.";
+        }
+
+        return redirect()->route('alkes.show', $alkes->id)->with('success', $message);
+    }
+
+    /**
+     * Endpoint API Webhook untuk menerima perubahan langsung dari Google Spreadsheet
+     */
+    public function handleSheetWebhookUpdate(Request $request, GoogleSheetSyncService $syncService)
+    {
+        $incomingSecret = $request->header('X-Zapin-Secret') ?? $request->input('secret');
+        $expectedSecret = config('zapin.api_key');
+
+        if (empty($expectedSecret) || $incomingSecret !== $expectedSecret) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Unauthorized: Kunci API rahasia (secret key) tidak valid atau tidak disertakan.',
+            ], 401);
+        }
+
+        $payload = $request->all();
+        $result = $syncService->updateFromSheetWebhook($payload);
+
+        if (!$result['success']) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $result['message'] ?? 'Gagal memproses sinkronisasi dari Google Sheets.',
+            ], 422);
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'action' => $result['action'] ?? 'updated',
+            'message' => "Data alkes '{$result['nama_barang']}' berhasil disinkronkan ke sistem ZAPIN.",
+            'alkes_id' => $result['alkes_id'] ?? null,
+        ]);
     }
 
     public function destroy($id)

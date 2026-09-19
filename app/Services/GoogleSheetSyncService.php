@@ -13,9 +13,43 @@ class GoogleSheetSyncService
 {
     protected string $sheetUrl;
 
+    protected array $roomCache = [];
+
     public function __construct(?string $url = null)
     {
         $this->sheetUrl = $url ?? config('zapin.google_sheet_url', env('GOOGLE_SHEET_URL', ''));
+    }
+
+    public function getOrCreateRuanganId(?string $rawNama): int
+    {
+        $nama = trim($rawNama ?? '');
+        if (empty($nama) || $nama === '-') {
+            $nama = 'G. Penunjang';
+        }
+
+        $key = strtolower($nama);
+        if (isset($this->roomCache[$key])) {
+            return $this->roomCache[$key];
+        }
+
+        $ruangan = Ruangan::whereRaw('LOWER(nama_ruangan) = ?', [$key])->first();
+        if (!$ruangan) {
+            $cleanCode = strtoupper(substr(preg_replace('/[^A-Za-z0-9]/', '', $nama), 0, 8));
+            $kode = 'R-' . $cleanCode;
+            $counter = 1;
+            while (Ruangan::where('kode_ruangan', $kode)->exists()) {
+                $kode = 'R-' . $cleanCode . '-' . $counter;
+                $counter++;
+            }
+
+            $ruangan = Ruangan::create([
+                'nama_ruangan' => $nama,
+                'kode_ruangan' => $kode,
+            ]);
+        }
+
+        $this->roomCache[$key] = $ruangan->id;
+        return $ruangan->id;
     }
 
     public function sync(): array
@@ -37,38 +71,6 @@ class GoogleSheetSyncService
 
         DB::transaction(function () use ($lines, &$created, &$updated, &$totalProcessed) {
             $header = null;
-            $roomCache = [];
-
-            $getOrCreateRuanganId = function (?string $rawNama) use (&$roomCache): int {
-                $nama = trim($rawNama ?? '');
-                if (empty($nama) || $nama === '-') {
-                    $nama = 'G. Penunjang';
-                }
-
-                $key = strtolower($nama);
-                if (isset($roomCache[$key])) {
-                    return $roomCache[$key];
-                }
-
-                $ruangan = Ruangan::whereRaw('LOWER(nama_ruangan) = ?', [$key])->first();
-                if (!$ruangan) {
-                    $cleanCode = strtoupper(substr(preg_replace('/[^A-Za-z0-9]/', '', $nama), 0, 8));
-                    $kode = 'R-' . $cleanCode;
-                    $counter = 1;
-                    while (Ruangan::where('kode_ruangan', $kode)->exists()) {
-                        $kode = 'R-' . $cleanCode . '-' . $counter;
-                        $counter++;
-                    }
-
-                    $ruangan = Ruangan::create([
-                        'nama_ruangan' => $nama,
-                        'kode_ruangan' => $kode,
-                    ]);
-                }
-
-                $roomCache[$key] = $ruangan->id;
-                return $ruangan->id;
-            };
 
             foreach ($lines as $lineIndex => $line) {
                 if (trim($line) === '') {
@@ -140,7 +142,7 @@ class GoogleSheetSyncService
                     $status = 'Dalam Perbaikan';
                 }
 
-                $ruanganId = $getOrCreateRuanganId($ruanganNama);
+                $ruanganId = $this->getOrCreateRuanganId($ruanganNama);
 
                 // Cari record alkes yang cocok: prioritas utama berdasarkan no_urut spreadsheet (1..638)
                 $alkes = null;
@@ -226,5 +228,210 @@ class GoogleSheetSyncService
         }
 
         return '';
+    }
+
+    /**
+     * Push pembaruan data alkes dari ZAPIN ke Google Spreadsheet melalui Apps Script Webhook.
+     */
+    public function pushUpdateToSheet(Alkes $alkes): array
+    {
+        $webhookUrl = config('zapin.sheet_webhook_url');
+        if (empty($webhookUrl)) {
+            Log::info("Google Sheet Webhook URL belum diatur (GOOGLE_SHEET_WEBHOOK_URL). Lewati pengiriman ke spreadsheet.");
+            return [
+                'success' => false,
+                'message' => 'GOOGLE_SHEET_WEBHOOK_URL belum dikonfigurasi di .env',
+            ];
+        }
+
+        $payload = [
+            'secret' => config('zapin.api_key'),
+            'action' => 'update_row',
+            'data' => [
+                'no_urut' => $alkes->no_urut,
+                'nama_barang' => $alkes->nama_barang,
+                'merk' => $alkes->merk,
+                'tipe' => $alkes->tipe,
+                'nomor_seri' => $alkes->nomor_seri,
+                'tahun' => $alkes->tahun,
+                'jumlah' => $alkes->jumlah,
+                'cara_perolehan' => $alkes->cara_perolehan,
+                'nilai_perolehan' => $alkes->nilai_perolehan,
+                'distributor' => $alkes->distributor,
+                'ruangan' => $alkes->ruangan?->nama_ruangan ?? '',
+                'lokasi_saat_ini' => $alkes->lokasiRuangan?->nama_ruangan ?? $alkes->lokasi_saat_ini_note ?? '',
+                'kondisi' => $alkes->kondisi ?? '',
+                'aspak' => $alkes->aspak ?? '',
+                'kib' => $alkes->kib ?? '',
+                'non_kib_dan_aspak' => $alkes->non_kib_dan_aspak ?? '',
+                'akl_akd' => $alkes->akl_akd ?? '',
+                'keterangan' => $alkes->keterangan ?? '',
+            ],
+        ];
+
+        try {
+            $response = Http::timeout(15)
+                ->withHeaders([
+                    'Content-Type' => 'application/json',
+                    'User-Agent' => 'ZAPIN-Sync-Engine/2.0',
+                ])
+                ->post($webhookUrl, $payload);
+
+            if ($response->successful()) {
+                Log::info("Push data alkes #{$alkes->no_urut} ({$alkes->nama_barang}) ke Google Sheet berhasil.");
+                return [
+                    'success' => true,
+                    'data' => $response->json(),
+                ];
+            }
+
+            Log::warning("Push ke Google Sheet mengembalikan HTTP {$response->status()}: " . $response->body());
+            return [
+                'success' => false,
+                'message' => "HTTP {$response->status()}: " . $response->body(),
+            ];
+        } catch (\Throwable $e) {
+            Log::warning("Gagal mengirim update ke Google Sheet: " . $e->getMessage());
+            return [
+                'success' => false,
+                'message' => $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * Menerima pembaruan data dari Google Spreadsheet via Webhook dan menyimpannya ke PostgreSQL secara atomik.
+     */
+    public function updateFromSheetWebhook(array $payload): array
+    {
+        $data = $payload['data'] ?? $payload;
+        $noUrut = isset($data['no_urut']) && is_numeric($data['no_urut']) ? (int) $data['no_urut'] : null;
+
+        if ($noUrut === null) {
+            return [
+                'success' => false,
+                'message' => 'Nomor urut (no_urut) tidak ditemukan dalam data webhook.',
+            ];
+        }
+
+        $alkes = Alkes::where('no_urut', $noUrut)->first();
+        $updateFields = [];
+
+        if (array_key_exists('nama_barang', $data) && !empty(trim((string)$data['nama_barang']))) {
+            $updateFields['nama_barang'] = trim((string)$data['nama_barang']);
+        }
+        if (array_key_exists('merk', $data)) {
+            $updateFields['merk'] = trim((string)$data['merk']) ?: null;
+        }
+        if (array_key_exists('tipe', $data)) {
+            $updateFields['tipe'] = trim((string)$data['tipe']) ?: null;
+        }
+        if (array_key_exists('nomor_seri', $data)) {
+            $updateFields['nomor_seri'] = trim((string)$data['nomor_seri']) ?: null;
+        }
+        if (array_key_exists('tahun', $data)) {
+            $updateFields['tahun'] = trim((string)$data['tahun']) ?: null;
+        }
+        if (array_key_exists('jumlah', $data)) {
+            $updateFields['jumlah'] = is_numeric($data['jumlah']) ? (int) $data['jumlah'] : 1;
+        }
+        if (array_key_exists('cara_perolehan', $data)) {
+            $updateFields['cara_perolehan'] = trim((string)$data['cara_perolehan']) ?: null;
+        }
+        if (array_key_exists('nilai_perolehan', $data)) {
+            $updateFields['nilai_perolehan'] = trim((string)$data['nilai_perolehan']) ?: null;
+        }
+        if (array_key_exists('distributor', $data)) {
+            $updateFields['distributor'] = trim((string)$data['distributor']) ?: null;
+        }
+        if (array_key_exists('ruangan', $data)) {
+            $ruanganNama = trim((string)$data['ruangan']);
+            if (!empty($ruanganNama)) {
+                $ruanganId = $this->getOrCreateRuanganId($ruanganNama);
+                $updateFields['ruangan_id'] = $ruanganId;
+                if (!$alkes || $alkes->ruangan_id === $alkes->lokasi_ruangan_id) {
+                    $updateFields['lokasi_ruangan_id'] = $ruanganId;
+                }
+            }
+        }
+        if (array_key_exists('lokasi_saat_ini', $data)) {
+            $lokasiRaw = trim((string)$data['lokasi_saat_ini']);
+            if (!empty($lokasiRaw)) {
+                $lokasiId = $this->getOrCreateRuanganId($lokasiRaw);
+                $updateFields['lokasi_ruangan_id'] = $lokasiId;
+                $updateFields['lokasi_saat_ini_note'] = $lokasiRaw;
+            }
+        }
+        if (array_key_exists('kondisi', $data)) {
+            $kondisiRaw = trim((string)$data['kondisi']);
+            $kondisi = !empty($kondisiRaw) ? strtoupper($kondisiRaw) : null;
+            $updateFields['kondisi'] = $kondisi;
+            if ($kondisi && str_contains($kondisi, 'RUSAK')) {
+                $updateFields['status'] = 'Dalam Perbaikan';
+            } elseif ($alkes && $alkes->status === 'Dalam Perbaikan') {
+                $updateFields['status'] = 'Tersedia';
+            }
+        }
+        if (array_key_exists('aspak', $data)) {
+            $updateFields['aspak'] = trim((string)$data['aspak']) ?: null;
+        }
+        if (array_key_exists('kib', $data)) {
+            $updateFields['kib'] = trim((string)$data['kib']) ?: null;
+        }
+        if (array_key_exists('non_kib_dan_aspak', $data)) {
+            $updateFields['non_kib_dan_aspak'] = trim((string)$data['non_kib_dan_aspak']) ?: null;
+        }
+        if (array_key_exists('akl_akd', $data)) {
+            $updateFields['akl_akd'] = trim((string)$data['akl_akd']) ?: null;
+        }
+        if (array_key_exists('keterangan', $data)) {
+            $updateFields['keterangan'] = trim((string)$data['keterangan']) ?: null;
+        }
+
+        if ($alkes) {
+            $alkes->update($updateFields);
+            $alkes->load('ruangan');
+
+            ActivityLog::record(
+                'Sync dari Spreadsheet',
+                "Pembaruan otomatis dari Google Spreadsheet untuk alkes '{$alkes->nama_barang}' (No: {$alkes->no_urut}).",
+                $alkes->ruangan?->nama_ruangan ?? 'Pusat Data RS',
+                'Google Sheets'
+            );
+
+            return [
+                'success' => true,
+                'action' => 'updated',
+                'alkes_id' => $alkes->id,
+                'nama_barang' => $alkes->nama_barang,
+            ];
+        } else {
+            $namaBarang = $updateFields['nama_barang'] ?? ('Alkes Baru #' . $noUrut);
+            $updateFields['no_urut'] = $noUrut;
+            $updateFields['nama_barang'] = $namaBarang;
+            $updateFields['kode_inventaris'] = sprintf('ALT-%s-%04d', $updateFields['tahun'] ?? date('Y'), $noUrut);
+            $updateFields['status_kalibrasi'] = 'BELUM DIKALIBRASI';
+            $updateFields['status'] = $updateFields['status'] ?? 'Tersedia';
+            if (!isset($updateFields['ruangan_id'])) {
+                $updateFields['ruangan_id'] = $this->getOrCreateRuanganId('G. Penunjang');
+                $updateFields['lokasi_ruangan_id'] = $updateFields['ruangan_id'];
+            }
+
+            $newAlkes = Alkes::create($updateFields);
+
+            ActivityLog::record(
+                'Sync dari Spreadsheet',
+                "Penambahan unit alkes baru #{$noUrut} ('{$newAlkes->nama_barang}') dari Google Spreadsheet.",
+                $newAlkes->ruangan?->nama_ruangan ?? 'Sistem',
+                'Google Sheets'
+            );
+
+            return [
+                'success' => true,
+                'action' => 'created',
+                'alkes_id' => $newAlkes->id,
+                'nama_barang' => $newAlkes->nama_barang,
+            ];
+        }
     }
 }

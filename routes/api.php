@@ -16,3 +16,6 @@ Route::get('/ping', function () {
         'timestamp' => now()->toIso8601String(),
     ]);
 });
+
+Route::post('/sheets/webhook-update', [\App\Http\Controllers\AlkesController::class, 'handleSheetWebhookUpdate']);
+
