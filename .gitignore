@@ -1,32 +1,60 @@
-# Dependencies
+# ==============================================================================
+# ZAPIN - Git Ignore Configuration
+# RSJKO Engku Haji Daud
+# ==============================================================================
+
+# Dependencies & Package Managers
 /node_modules/
 /vendor/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+auth.json
 
-# Public & Uploaded Files
+# Environment & Secret Credentials
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.crt
+
+# Public Builds & Uploaded Assets
 /public/build/
 /public/hot/
 /public/storage
 /public/uploads/*
-!/public/uploads/.gitignore
+/public/uploads/**/*
+!/public/uploads/**/.gitignore
+!/public/uploads/**/.gitkeep
 
-# Database & Certificates
-/database/*.sqlite
-/database/*.sqlite-journal
-/database/*.sqlite-wal
-/database/*.sqlite-shm
+# Database, SQL Dumps & Certificates
+*.sqlite
+*.sqlite-journal
+*.sqlite-wal
+*.sqlite-shm
 !/database/database.sqlite.example
+*.sql
+*.sql.gz
+*.dump
 /database/sertifikat/*
 !/database/sertifikat/.gitignore
 
-# Storage & Temporary Files
+# Laravel Storage & Framework Cache
 /storage/*.key
 /storage/*.txt
 /storage/app/*
 !/storage/app/.gitignore
+!/storage/app/public/
+/storage/app/public/*
+!/storage/app/public/.gitignore
 /storage/backups/*
 !/storage/backups/.gitignore
 /storage/framework/cache/*
 !/storage/framework/cache/.gitignore
+/storage/framework/cache/data/*
+!/storage/framework/cache/data/.gitignore
 /storage/framework/sessions/*
 !/storage/framework/sessions/.gitignore
 /storage/framework/testing/*
@@ -35,25 +63,41 @@
 !/storage/framework/views/.gitignore
 /storage/logs/*
 !/storage/logs/.gitignore
-
-# Environment & Secret Files
-.env
-.env.*
-!.env.example
-
-# Logs & Caches
-*.log
-.phpunit.result.cache
 /bootstrap/cache/*.php
 !/bootstrap/cache/.gitignore
 
-# IDE, Agent & OS System Files
+# Testing & Code Coverage
+*.log
+.phpunit.result.cache
+.phpunit.cache/
+.pest/
+/coverage/
+
+# IDE, Text Editors & OS System Files
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
 Thumbs.db
+ehthumbs.db
 /.idea/
 /.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# AI Agents & IDE Assistants
 /.gemini/
 /.antigravity/
 /.agents/
+/.cline/
+/.cursor/
+
+# Temporary & Swap Files
 *.tmp
 *.swp
+*.swo
+*~
+*.bak
+*.orig
+.directory
