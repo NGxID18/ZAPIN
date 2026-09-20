@@ -58,13 +58,21 @@
 
                 <div class="md:col-span-2">
                     <label class="block text-xs font-medium text-slate-600 mb-1.5">Penempatan Ruangan <span class="text-rose-500">*</span></label>
-                    <select name="ruangan_id" required class="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400">
-                        @foreach ($ruanganList as $ruang)
-                            <option value="{{ $ruang->id }}" {{ old('ruangan_id', $alkes->ruangan_id) == $ruang->id ? 'selected' : '' }}>
-                                {{ $ruang->nama_ruangan }} ({{ $ruang->lokasi_lantai ?? 'RS' }})
-                            </option>
-                        @endforeach
-                    </select>
+                    @if (session('user_role') === 'ruangan')
+                        <input type="hidden" name="ruangan_id" value="{{ $alkes->ruangan_id }}">
+                        <div class="w-full px-3.5 py-2.5 bg-slate-100 border border-slate-200 rounded-lg text-sm font-semibold text-slate-800 flex items-center justify-between">
+                            <span>{{ $alkes->ruangan->nama_ruangan ?? '-' }} ({{ $alkes->ruangan->lokasi_lantai ?? 'RS' }})</span>
+                            <span class="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded font-medium">Terkunci ke Ruangan Anda</span>
+                        </div>
+                    @else
+                        <select name="ruangan_id" required class="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400">
+                            @foreach ($ruanganList as $ruang)
+                                <option value="{{ $ruang->id }}" {{ old('ruangan_id', $alkes->ruangan_id) == $ruang->id ? 'selected' : '' }}>
+                                    {{ $ruang->nama_ruangan }} ({{ $ruang->lokasi_lantai ?? 'RS' }})
+                                </option>
+                            @endforeach
+                        </select>
+                    @endif
                 </div>
 
                 <div>

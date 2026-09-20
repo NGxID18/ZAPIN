@@ -48,7 +48,17 @@ class MutasiAlkesController extends Controller
     public function create(Request $request)
     {
         $selectedAlkesId = $request->query('alkes_id');
-        $alkesList = Alkes::with(['ruangan', 'lokasiRuangan'])->accessibleByCurrentRole()->orderBy('nama_barang', 'asc')->get();
+        $alkesQuery = Alkes::with(['ruangan', 'lokasiRuangan'])->orderBy('nama_barang', 'asc');
+
+        if (session('user_role') === 'ruangan' && session('user_ruangan_id')) {
+            $myRoom = (int) session('user_ruangan_id');
+            $alkesQuery->where(function ($q) use ($myRoom) {
+                $q->where('ruangan_id', $myRoom)
+                  ->orWhere('lokasi_ruangan_id', $myRoom);
+            });
+        }
+
+        $alkesList = $alkesQuery->get();
         $ruanganList = Ruangan::orderBy('nama_ruangan', 'asc')->get();
 
         return view('mutasi.create', compact('alkesList', 'ruanganList', 'selectedAlkesId'));
@@ -69,14 +79,9 @@ class MutasiAlkesController extends Controller
             $alkes = Alkes::where('id', $validated['alkes_id'])->lockForUpdate()->firstOrFail();
             $ruanganAsalId = $alkes->lokasi_ruangan_id ?? $alkes->ruangan_id;
 
-            // Proteksi Otorisasi (IDOR Prevention): Peran ruangan hanya boleh memutasi alat miliknya
-            $userRole = session('user_role');
-            $userRuanganId = (int) session('user_ruangan_id');
-            if ($userRole === 'ruangan' && $userRuanganId) {
-                $isPermitted = ($alkes->ruangan_id === $userRuanganId || $alkes->lokasi_ruangan_id === $userRuanganId);
-                if (!$isPermitted) {
-                    abort(403, 'Akses Ditolak: Anda hanya memiliki hak akses untuk memutasi alat kesehatan di ruangan Anda.');
-                }
+            // Proteksi Otorisasi: Peran ruangan hanya boleh memutasi alat di ruangannya
+            if (!$alkes->canBeOperatedByCurrentRole()) {
+                abort(403, 'Akses Ditolak: Anda hanya memiliki hak akses untuk memutasi alat kesehatan di ruangan Anda.');
             }
 
             if ((int) $validated['ruangan_tujuan_id'] === (int) $ruanganAsalId) {

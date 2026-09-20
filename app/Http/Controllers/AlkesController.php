@@ -129,6 +129,10 @@ class AlkesController extends Controller
         $validated['aspak'] = ($request->input('aspak_status') === 'TERDATA') ? 'TERDATA' : 'TIDAK TERDATA';
         $validated['kib'] = ($request->input('kib_status') === 'TERDATA') ? 'TERDATA' : 'TIDAK TERDATA';
 
+        if (session('user_role') === 'ruangan' && session('user_ruangan_id')) {
+            $validated['ruangan_id'] = (int) session('user_ruangan_id');
+        }
+
         $validated['lokasi_ruangan_id'] = $validated['ruangan_id'];
         $validated['status'] = $validated['status'] ?? 'Tersedia';
 
@@ -178,6 +182,11 @@ class AlkesController extends Controller
     public function edit($id)
     {
         $alkes = Alkes::findOrFail($id);
+        if (!$alkes->canBeManagedByCurrentRole()) {
+            return redirect()->route('alkes.show', $alkes->id)
+                ->with('error', 'Akses Ditolak: Anda hanya memiliki hak kendali atas alat kesehatan milik ruangan Anda.');
+        }
+
         $nomenklaturList = collect([]);
         $ruanganList = Ruangan::orderBy('nama_ruangan', 'asc')->get();
 
@@ -190,6 +199,10 @@ class AlkesController extends Controller
     public function update(Request $request, $id, GoogleSheetSyncService $syncService)
     {
         $alkes = Alkes::findOrFail($id);
+        if (!$alkes->canBeManagedByCurrentRole()) {
+            return redirect()->route('alkes.show', $alkes->id)
+                ->with('error', 'Akses Ditolak: Anda hanya memiliki hak kendali atas alat kesehatan milik ruangan Anda.');
+        }
 
         $validated = $request->validate([
             'nama_barang' => 'required|string|max:255',
@@ -206,6 +219,10 @@ class AlkesController extends Controller
             'kib_status' => 'nullable|string|max:50',
             'keterangan' => 'nullable|string',
         ]);
+
+        if (session('user_role') === 'ruangan') {
+            $validated['ruangan_id'] = $alkes->ruangan_id;
+        }
 
         if (isset($validated['tahun_pengadaan']) && !empty($validated['tahun_pengadaan'])) {
             $validated['tahun'] = $validated['tahun_pengadaan'];
@@ -274,6 +291,11 @@ class AlkesController extends Controller
     public function destroy($id, GoogleSheetSyncService $syncService)
     {
         $alkes = Alkes::findOrFail($id);
+        if (!$alkes->canBeManagedByCurrentRole()) {
+            return redirect()->route('alkes.show', $alkes->id)
+                ->with('error', 'Akses Ditolak: Anda hanya berhak menghapus alat kesehatan milik ruangan Anda.');
+        }
+
         $nama = $alkes->nama_barang;
         $noUrut = $alkes->no_urut;
         $alkes->delete();

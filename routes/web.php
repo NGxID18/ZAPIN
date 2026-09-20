@@ -21,7 +21,7 @@ Route::middleware([EnsureSessionRole::class])->group(function () {
     Route::get('alkes', [AlkesController::class, 'index'])->name('alkes.index');
     Route::post('alkes/sync-sheets', [AlkesController::class, 'syncGoogleSheets'])->name('alkes.sync-sheets');
 
-    Route::middleware(['role:elektromedis'])->group(function () {
+    Route::middleware(['role:elektromedis,ruangan'])->group(function () {
         Route::get('alkes/create', [AlkesController::class, 'create'])->name('alkes.create');
         Route::post('alkes', [AlkesController::class, 'store'])->name('alkes.store');
         Route::get('alkes/{alkes}/edit', [AlkesController::class, 'edit'])->whereNumber('alkes')->name('alkes.edit');

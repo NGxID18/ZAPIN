@@ -96,13 +96,38 @@ class Alkes extends Model
 
     public function scopeAccessibleByCurrentRole($query)
     {
-        if (session('user_role') === 'ruangan' && session('user_ruangan_id')) {
-            $userRuanganId = (int) session('user_ruangan_id');
-            return $query->where(function ($q) use ($userRuanganId) {
-                $q->where('ruangan_id', $userRuanganId)
-                  ->orWhere('lokasi_ruangan_id', $userRuanganId);
-            });
-        }
+        // Seluruh ruangan berhak melihat (read/browse) data alkes di semua ruangan rumah sakit.
         return $query;
+    }
+
+    /**
+     * Memeriksa apakah pengguna saat ini berhak mengelola penuh (Edit / Update / Hapus) alkes ini.
+     */
+    public function canBeManagedByCurrentRole(): bool
+    {
+        $role = session('user_role');
+        if ($role === 'elektromedis') {
+            return true;
+        }
+        if ($role === 'ruangan' && session('user_ruangan_id')) {
+            return (int) $this->ruangan_id === (int) session('user_ruangan_id');
+        }
+        return false;
+    }
+
+    /**
+     * Memeriksa apakah pengguna saat ini berhak mengoperasikan alkes ini (Pindah Ruangan / Lapor Perbaikan).
+     */
+    public function canBeOperatedByCurrentRole(): bool
+    {
+        $role = session('user_role');
+        if ($role === 'elektromedis') {
+            return true;
+        }
+        if ($role === 'ruangan' && session('user_ruangan_id')) {
+            $myRoom = (int) session('user_ruangan_id');
+            return (int) $this->ruangan_id === $myRoom || (int) $this->lokasi_ruangan_id === $myRoom;
+        }
+        return false;
     }
 }

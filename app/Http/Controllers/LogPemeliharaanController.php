@@ -53,7 +53,17 @@ class LogPemeliharaanController extends Controller
     public function create(Request $request)
     {
         $selectedAlkesId = $request->query('alkes_id');
-        $alkesList = Alkes::with(['ruangan', 'lokasiRuangan'])->accessibleByCurrentRole()->orderBy('nama_barang', 'asc')->get();
+        $alkesQuery = Alkes::with(['ruangan', 'lokasiRuangan'])->orderBy('nama_barang', 'asc');
+
+        if (session('user_role') === 'ruangan' && session('user_ruangan_id')) {
+            $myRoom = (int) session('user_ruangan_id');
+            $alkesQuery->where(function ($q) use ($myRoom) {
+                $q->where('ruangan_id', $myRoom)
+                  ->orWhere('lokasi_ruangan_id', $myRoom);
+            });
+        }
+
+        $alkesList = $alkesQuery->get();
 
         return view('pemeliharaan.create', compact('alkesList', 'selectedAlkesId'));
     }
@@ -73,6 +83,9 @@ class LogPemeliharaanController extends Controller
         ]);
 
         $alkes = Alkes::findOrFail($validated['alkes_id']);
+        if (!$alkes->canBeOperatedByCurrentRole()) {
+            abort(403, 'Akses Ditolak: Anda hanya memiliki hak untuk melaporkan kerusakan alat kesehatan di ruangan Anda.');
+        }
 
         $fotoPath = null;
         if ($request->hasFile('foto_kerusakan')) {

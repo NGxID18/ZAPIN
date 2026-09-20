@@ -56,14 +56,25 @@
 
                 <div class="md:col-span-2">
                     <label class="block text-xs font-black text-slate-800 uppercase tracking-wider mb-2">Penempatan Ruangan RS <span class="text-rose-600">*</span></label>
-                    <select name="ruangan_id" required class="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl text-sm font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600">
-                        <option value="">-- Pilih Ruangan --</option>
-                        @foreach ($ruanganList as $ruang)
-                            <option value="{{ $ruang->id }}" {{ old('ruangan_id') == $ruang->id ? 'selected' : '' }}>
-                                {{ $ruang->nama_ruangan }} ({{ $ruang->lokasi_lantai ?? 'RS' }})
-                            </option>
-                        @endforeach
-                    </select>
+                    @if (session('user_role') === 'ruangan')
+                        @php
+                            $userRoom = $ruanganList->firstWhere('id', session('user_ruangan_id'));
+                        @endphp
+                        <input type="hidden" name="ruangan_id" value="{{ session('user_ruangan_id') }}">
+                        <div class="w-full px-4 py-3 bg-slate-100 border border-slate-200 rounded-xl text-sm font-bold text-slate-800 flex items-center justify-between">
+                            <span>{{ $userRoom ? $userRoom->nama_ruangan . ' (' . ($userRoom->lokasi_lantai ?? 'RS') . ')' : 'Ruangan Anda' }}</span>
+                            <span class="text-xs bg-indigo-100 text-indigo-700 px-2.5 py-1 rounded-md font-semibold">Terkunci ke Ruangan Anda</span>
+                        </div>
+                    @else
+                        <select name="ruangan_id" required class="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl text-sm font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600">
+                            <option value="">-- Pilih Ruangan --</option>
+                            @foreach ($ruanganList as $ruang)
+                                <option value="{{ $ruang->id }}" {{ old('ruangan_id') == $ruang->id ? 'selected' : '' }}>
+                                    {{ $ruang->nama_ruangan }} ({{ $ruang->lokasi_lantai ?? 'RS' }})
+                                </option>
+                            @endforeach
+                        </select>
+                    @endif
                 </div>
 
                 <div>
