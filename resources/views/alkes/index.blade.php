@@ -59,20 +59,6 @@
                 <span>Buka Google Sheets</span>
             </a>
 
-            @if (session('user_role') === 'ruangan' && session('user_ruangan_id'))
-                @if (request('ruangan_id') == session('user_ruangan_id'))
-                    <a href="{{ route('alkes.index') }}" class="px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-2" title="Tampilkan semua alkes rumah sakit">
-                        <i class="ri-building-line text-slate-600 text-lg"></i>
-                        <span>Lihat Seluruh RS</span>
-                    </a>
-                @else
-                    <a href="{{ route('alkes.index', ['ruangan_id' => session('user_ruangan_id')]) }}" class="px-4 py-3 bg-indigo-50 hover:bg-indigo-100 text-indigo-900 border border-indigo-300 font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-2" title="Tampilkan khusus alkes milik ruangan Anda">
-                        <i class="ri-user-star-line text-indigo-600 text-lg"></i>
-                        <span>Alkes Ruangan Saya</span>
-                    </a>
-                @endif
-            @endif
-
             @if (in_array($currentRole, ['elektromedis', 'ruangan']))
                 <a href="{{ route('alkes.create') }}" class="px-5 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center gap-2">
                     <i class="ri-add-line text-lg"></i>
