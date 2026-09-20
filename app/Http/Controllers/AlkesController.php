@@ -7,6 +7,7 @@ use App\Models\Alkes;
 use App\Models\Ruangan;
 use App\Services\GoogleSheetSyncService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class AlkesController extends Controller
 {
@@ -104,7 +105,7 @@ class AlkesController extends Controller
         return view('alkes.create', compact('nomenklaturList', 'ruanganList', 'kondisis', 'statuses'));
     }
 
-    public function store(Request $request)
+    public function store(Request $request, GoogleSheetSyncService $syncService)
     {
         $validated = $request->validate([
             'nama_barang' => 'required|string|max:255',
@@ -112,24 +113,66 @@ class AlkesController extends Controller
             'tipe' => 'nullable|string|max:255',
             'nomor_seri' => 'nullable|string|max:255',
             'tahun' => 'nullable|string|max:10',
-            'jumlah' => 'nullable|integer',
+            'tahun_pengadaan' => 'nullable|string|max:10',
+            'jumlah' => 'nullable|integer|min:1',
             'ruangan_id' => 'required|exists:ruangan,id',
+            'status' => 'nullable|string|max:50',
             'kondisi' => 'nullable|string|max:50',
+            'aspak_status' => 'nullable|string|max:50',
+            'kib_status' => 'nullable|string|max:50',
             'keterangan' => 'nullable|string',
         ]);
 
+        if (!empty($validated['tahun_pengadaan'])) {
+            $validated['tahun'] = $validated['tahun_pengadaan'];
+        }
+        $validated['aspak'] = ($request->input('aspak_status') === 'TERDATA') ? 'TERDATA' : 'TIDAK TERDATA';
+        $validated['kib'] = ($request->input('kib_status') === 'TERDATA') ? 'TERDATA' : 'TIDAK TERDATA';
+
         $validated['lokasi_ruangan_id'] = $validated['ruangan_id'];
+        $validated['status'] = $validated['status'] ?? 'Tersedia';
+
+        $totalUnits = max(1, (int) ($validated['jumlah'] ?? 1));
         $validated['jumlah'] = 1;
-        $maxNo = Alkes::max('no_urut') ?? 0;
-        $validated['no_urut'] = $maxNo + 1;
-        $validated['kode_inventaris'] = sprintf('ALT-%s-%04d', $validated['tahun'] ?? date('Y'), $validated['no_urut']);
 
-        $alkes = Alkes::create($validated);
+        $createdUnits = [];
+        DB::transaction(function () use ($validated, $totalUnits, &$createdUnits) {
+            $maxNo = Alkes::max('no_urut') ?? 0;
+            for ($i = 1; $i <= $totalUnits; $i++) {
+                $itemData = $validated;
+                $itemNo = $maxNo + $i;
+                $itemData['no_urut'] = $itemNo;
+                $itemData['kode_inventaris'] = sprintf('ALT-%s-%04d', $itemData['tahun'] ?? date('Y'), $itemNo);
 
-        ActivityLog::record('Tambah Alkes', "Registrasi unit alkes baru '{$alkes->nama_barang}' (SN: " . ($alkes->nomor_seri ?: '-') . ").", $alkes->ruangan->nama_ruangan ?? null);
+                $alkes = Alkes::create($itemData);
+                $createdUnits[] = $alkes;
 
-        return redirect()->route('alkes.index', ['ruangan_id' => $alkes->ruangan_id])
-            ->with('success', "Aset alkes '{$alkes->nama_barang}' berhasil ditambahkan ke database.");
+                ActivityLog::record(
+                    'Tambah Alkes',
+                    "Registrasi unit alkes baru '{$alkes->nama_barang}' (No: {$alkes->no_urut}, SN: " . ($alkes->nomor_seri ?: '-') . ").",
+                    $alkes->ruangan->nama_ruangan ?? null
+                );
+            }
+        });
+
+        // Sinkronkan setiap unit yang dibuat ke Google Spreadsheet
+        foreach ($createdUnits as $unit) {
+            $syncService->pushUpdateToSheet($unit->fresh());
+        }
+
+        $lastUnit = end($createdUnits);
+        $redirectRuanganId = $lastUnit ? $lastUnit->ruangan_id : null;
+
+        if ($totalUnits > 1) {
+            $startNo = $createdUnits[0]->no_urut;
+            $endNo = $lastUnit->no_urut;
+            $msg = "{$totalUnits} unit alkes '{$lastUnit->nama_barang}' (No. {$startNo} s/d {$endNo}) berhasil ditambahkan ke sistem dan Google Spreadsheet.";
+        } else {
+            $msg = "Aset alkes '{$lastUnit->nama_barang}' (No. {$lastUnit->no_urut}) berhasil ditambahkan ke sistem dan Google Spreadsheet.";
+        }
+
+        return redirect()->route('alkes.index', ['ruangan_id' => $redirectRuanganId])
+            ->with('success', $msg);
     }
 
     public function edit($id)
@@ -167,11 +210,11 @@ class AlkesController extends Controller
         if (isset($validated['tahun_pengadaan']) && !empty($validated['tahun_pengadaan'])) {
             $validated['tahun'] = $validated['tahun_pengadaan'];
         }
-        if (isset($validated['aspak_status'])) {
-            $validated['aspak'] = $validated['aspak_status'];
+        if ($request->has('aspak_status')) {
+            $validated['aspak'] = ($request->input('aspak_status') === 'TERDATA') ? 'TERDATA' : 'TIDAK TERDATA';
         }
-        if (isset($validated['kib_status'])) {
-            $validated['kib'] = $validated['kib_status'] == '1' ? 'TERDAFTAR' : 'NON KIB';
+        if ($request->has('kib_status')) {
+            $validated['kib'] = ($request->input('kib_status') === 'TERDATA') ? 'TERDATA' : 'TIDAK TERDATA';
         }
 
         $alkes->update($validated);
@@ -203,6 +246,13 @@ class AlkesController extends Controller
             ], 401);
         }
 
+        $action = $request->input('action');
+        if ($action === 'reconcile_active_rows') {
+            $activeNoUruts = $request->input('active_no_uruts', []);
+            $result = $syncService->reconcileActiveRows($activeNoUruts);
+            return response()->json($result);
+        }
+
         $payload = $request->all();
         $result = $syncService->updateFromSheetWebhook($payload);
 
@@ -221,16 +271,22 @@ class AlkesController extends Controller
         ]);
     }
 
-    public function destroy($id)
+    public function destroy($id, GoogleSheetSyncService $syncService)
     {
         $alkes = Alkes::findOrFail($id);
         $nama = $alkes->nama_barang;
+        $noUrut = $alkes->no_urut;
         $alkes->delete();
 
-        ActivityLog::record('Hapus Alkes', "Penghapusan data alkes '{$nama}'.");
+        ActivityLog::record('Hapus Alkes', "Penghapusan data alkes '{$nama}' (No: {$noUrut}).");
+
+        // Otomatis hapus baris di Google Spreadsheet
+        if ($noUrut) {
+            $syncService->pushDeleteToSheet($noUrut);
+        }
 
         return redirect()->route('alkes.index')
-            ->with('success', "Aset alkes '{$nama}' berhasil dihapus dari sistem.");
+            ->with('success', "Aset alkes '{$nama}' (No: {$noUrut}) berhasil dihapus dari sistem dan Google Spreadsheet.");
     }
 
     public function syncGoogleSheets(GoogleSheetSyncService $syncService)

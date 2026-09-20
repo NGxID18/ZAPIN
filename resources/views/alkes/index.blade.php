@@ -9,11 +9,13 @@
     $sortDir = strtolower(request('sort_dir', 'asc')) === 'desc' ? 'desc' : 'asc';
     $currentRole = session('user_role', 'elektromedis');
 
-    function makeSortUrl($column, $currentSortBy, $currentSortDir) {
-        $queryParams = request()->query();
-        $queryParams['sort_by'] = $column;
-        $queryParams['sort_dir'] = ($currentSortBy === $column && $currentSortDir === 'asc') ? 'desc' : 'asc';
-        return route('alkes.index', $queryParams);
+    if (!function_exists('makeSortUrl')) {
+        function makeSortUrl($column, $currentSortBy, $currentSortDir) {
+            $queryParams = request()->query();
+            $queryParams['sort_by'] = $column;
+            $queryParams['sort_dir'] = ($currentSortBy === $column && $currentSortDir === 'asc') ? 'desc' : 'asc';
+            return route('alkes.index', $queryParams);
+        }
     }
 @endphp
 
@@ -41,13 +43,6 @@
                 <i class="ri-stethoscope-line text-emerald-600"></i>
                 {{ $pageTitle }}
             </h3>
-            <p class="text-sm text-slate-700 mt-1 font-medium">
-                @if ($selectedRuanganObj)
-                    Menampilkan seluruh unit alat kesehatan milik <strong class="text-slate-900">RUANG {{ strtoupper($selectedRuanganObj->nama_ruangan) }}</strong>
-                @else
-                    Kelola dan tinjau seluruh rekapan data alat kesehatan, kondisi fisik, dan lokasi penempatan unit
-                @endif
-            </p>
         </div>
 
         <div class="flex items-center gap-2.5 shrink-0 flex-wrap">
@@ -133,9 +128,9 @@
                 </div>
 
                 <div>
-                    <label class="block text-xs font-bold text-slate-800 mb-1.5">Lokasi Fisik Saat Ini</label>
+                    <label class="block text-xs font-bold text-slate-800 mb-1.5">Lokasi Alkes</label>
                     <select id="selectLokasi" name="lokasi_ruangan_id" class="w-full">
-                        <option value="">-- Semua Lokasi Fisik --</option>
+                        <option value="">-- Semua Lokasi Alkes --</option>
                         @foreach ($ruanganList as $ruang)
                             <option value="{{ $ruang->id }}" {{ request('lokasi_ruangan_id') == $ruang->id ? 'selected' : '' }}>
                                 {{ $ruang->nama_ruangan }}
@@ -183,7 +178,7 @@
                         <th class="px-3.5 py-3.5 border-r border-emerald-900 w-36">Serial Number</th>
                         <th class="px-3.5 py-3.5 text-center border-r border-emerald-900 w-20">Tahun</th>
                         <th class="px-3.5 py-3.5 border-r border-emerald-900 w-36">Ruang Pemilik</th>
-                        <th class="px-3.5 py-3.5 border-r border-emerald-900 w-40">Lokasi Fisik saat Ini</th>
+                        <th class="px-3.5 py-3.5 border-r border-emerald-900 w-40">Lokasi Alkes</th>
                         <th class="px-3.5 py-3.5 border-r border-emerald-900 w-32">
                             <a href="{{ makeSortUrl('kondisi', $sortBy, $sortDir) }}" class="flex items-center justify-between hover:text-amber-300 transition" title="Urutkan Kondisi">
                                 <span>Kondisi</span>
@@ -255,6 +250,13 @@
                                         <a href="{{ route('alkes.edit', $alkes->id) }}" class="p-1.5 text-slate-800 hover:bg-slate-200 rounded-lg transition" title="Edit Data">
                                             <i class="ri-edit-line text-lg"></i>
                                         </a>
+                                        <form action="{{ route('alkes.destroy', $alkes->id) }}" method="POST" class="inline" onsubmit="return confirm('Hapus aset \'{{ $alkes->nama_barang }}\' (No: {{ $alkes->no_urut }}) dari ZAPIN dan Google Spreadsheet?');">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="p-1.5 text-rose-600 hover:bg-rose-100 rounded-lg transition" title="Hapus Aset">
+                                                <i class="ri-delete-bin-line text-lg"></i>
+                                            </button>
+                                        </form>
                                     @endif
                                 </div>
                             </td>

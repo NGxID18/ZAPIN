@@ -16,7 +16,6 @@
                 <i class="ri-arrow-left-right-line text-indigo-600"></i>
                 Riwayat & Mutasi Pindah Ruangan
             </h3>
-            <p class="text-sm text-slate-700 mt-1 font-medium">Histori dan pelacakan otomatis pemindahan lokasi fisik unit alkes antar ruangan</p>
         </div>
         <a href="{{ route('mutasi.create') }}" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs rounded-xl shadow-md transition flex items-center gap-2 shrink-0">
             <i class="ri-add-line text-lg"></i>

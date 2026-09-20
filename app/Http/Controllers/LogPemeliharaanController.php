@@ -60,24 +60,41 @@ class LogPemeliharaanController extends Controller
 
     public function store(Request $request)
     {
+        if ($request->filled('gejala_kerusakan') && !$request->filled('deskripsi_kerusakan')) {
+            $request->merge(['deskripsi_kerusakan' => $request->input('gejala_kerusakan')]);
+        }
+
         $validated = $request->validate([
             'alkes_id' => 'required|exists:alkes,id',
             'deskripsi_kerusakan' => 'required|string',
             'jenis_tindakan' => 'nullable|string',
+            'tanggal_lapor' => 'nullable|date',
+            'foto_kerusakan' => 'nullable|file|image|max:10240',
         ]);
 
         $alkes = Alkes::findOrFail($validated['alkes_id']);
 
+        $fotoPath = null;
+        if ($request->hasFile('foto_kerusakan')) {
+            $file = $request->file('foto_kerusakan');
+            $ext = $file->getClientOriginalExtension() ?: 'jpg';
+            $filename = 'rusak_' . time() . '_' . uniqid() . '.' . $ext;
+            $fotoPath = $file->storeAs('uploads/kerusakan', $filename, 'public');
+        }
+
         $log = LogPemeliharaan::create([
             'alkes_id' => $alkes->id,
             'jenis_tindakan' => $validated['jenis_tindakan'] ?? 'Perbaikan Fisik',
-            'tanggal_mulai' => now(),
+            'tanggal_mulai' => $request->filled('tanggal_lapor') ? $request->tanggal_lapor : now(),
             'deskripsi_kerusakan' => $validated['deskripsi_kerusakan'],
+            'foto_kerusakan' => $fotoPath,
             'status_hasil' => 'Proses',
         ]);
 
         $alkes->update([
             'status' => 'Dalam Perbaikan',
+            'kondisi' => 'RUSAK RINGAN',
+            'lokasi_saat_ini_note' => 'Dalam Perbaikan Elektromedis',
         ]);
 
         ActivityLog::record(

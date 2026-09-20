@@ -17,7 +17,7 @@ class GoogleSheetSyncService
 
     public function __construct(?string $url = null)
     {
-        $this->sheetUrl = $url ?? config('zapin.google_sheet_url', env('GOOGLE_SHEET_URL', ''));
+        $this->sheetUrl = $url ?? config('zapin.google_sheet_url', '');
     }
 
     public function getOrCreateRuanganId(?string $rawNama): int
@@ -60,32 +60,34 @@ class GoogleSheetSyncService
             throw new \RuntimeException('Gagal mengunduh data CSV dari Google Spreadsheet. Pastikan tautan spreadsheet bersifat publik (view access).');
         }
 
-        $lines = explode("\n", $csvContent);
-        if (count($lines) < 2) {
-            throw new \RuntimeException('Data CSV Google Spreadsheet kosong atau tidak memiliki baris data.');
-        }
+        $stream = fopen('php://temp', 'r+');
+        fwrite($stream, $csvContent);
+        rewind($stream);
 
         $created = 0;
         $updated = 0;
         $totalProcessed = 0;
 
-        DB::transaction(function () use ($lines, &$created, &$updated, &$totalProcessed) {
-            $header = null;
+        try {
+            DB::transaction(function () use ($stream, &$created, &$updated, &$totalProcessed) {
+                $header = null;
+                $lineIndex = 0;
 
-            foreach ($lines as $lineIndex => $line) {
-                if (trim($line) === '') {
-                    continue;
-                }
+                while (($row = fgetcsv($stream)) !== false) {
+                    if (empty($row) || (count($row) === 1 && $row[0] === null)) {
+                        continue;
+                    }
 
-                $row = str_getcsv($line);
-                if ($lineIndex === 0) {
-                    $header = $row;
-                    continue;
-                }
+                    if ($lineIndex === 0) {
+                        $header = $row;
+                        $lineIndex++;
+                        continue;
+                    }
+                    $lineIndex++;
 
-                if (count($row) < 13) {
-                    continue;
-                }
+                    if (count($row) < 13) {
+                        continue;
+                    }
 
                 // Berdasarkan indeks kolom hasil audit profiling:
                 // Col 1: No.
@@ -193,6 +195,11 @@ class GoogleSheetSyncService
                 'Sistem Hybrid'
             );
         });
+        } finally {
+            if (is_resource($stream)) {
+                fclose($stream);
+            }
+        }
 
         return [
             'total' => $totalProcessed,
@@ -244,6 +251,12 @@ class GoogleSheetSyncService
             ];
         }
 
+        $rawKib = strtoupper(trim((string)($alkes->kib ?? '')));
+        $kib = in_array($rawKib, ['TERDATA', 'TERDAFTAR', 'TERDAFTAR KIB', '1', 'TRUE']) ? 'TERDATA' : 'TIDAK TERDATA';
+
+        $rawAspak = strtoupper(trim((string)($alkes->aspak ?? '')));
+        $aspak = in_array($rawAspak, ['TERDATA', 'TERDAFTAR', '1', 'TRUE']) ? 'TERDATA' : 'TIDAK TERDATA';
+
         $payload = [
             'secret' => config('zapin.api_key'),
             'action' => 'update_row',
@@ -261,8 +274,8 @@ class GoogleSheetSyncService
                 'ruangan' => $alkes->ruangan?->nama_ruangan ?? '',
                 'lokasi_saat_ini' => $alkes->lokasiRuangan?->nama_ruangan ?? $alkes->lokasi_saat_ini_note ?? '',
                 'kondisi' => $alkes->kondisi ?? '',
-                'aspak' => $alkes->aspak ?? '',
-                'kib' => $alkes->kib ?? '',
+                'aspak' => $aspak,
+                'kib' => $kib,
                 'non_kib_dan_aspak' => $alkes->non_kib_dan_aspak ?? '',
                 'akl_akd' => $alkes->akl_akd ?? '',
                 'keterangan' => $alkes->keterangan ?? '',
@@ -373,10 +386,12 @@ class GoogleSheetSyncService
             }
         }
         if (array_key_exists('aspak', $data)) {
-            $updateFields['aspak'] = trim((string)$data['aspak']) ?: null;
+            $rawAspak = strtoupper(trim((string)$data['aspak']));
+            $updateFields['aspak'] = in_array($rawAspak, ['TERDATA', 'TERDAFTAR', '1', 'TRUE']) ? 'TERDATA' : 'TIDAK TERDATA';
         }
         if (array_key_exists('kib', $data)) {
-            $updateFields['kib'] = trim((string)$data['kib']) ?: null;
+            $rawKib = strtoupper(trim((string)$data['kib']));
+            $updateFields['kib'] = in_array($rawKib, ['TERDATA', 'TERDAFTAR', 'TERDAFTAR KIB', '1', 'TRUE']) ? 'TERDATA' : 'TIDAK TERDATA';
         }
         if (array_key_exists('non_kib_dan_aspak', $data)) {
             $updateFields['non_kib_dan_aspak'] = trim((string)$data['non_kib_dan_aspak']) ?: null;
@@ -392,9 +407,10 @@ class GoogleSheetSyncService
             $alkes->update($updateFields);
             $alkes->load('ruangan');
 
+            $colNote = !empty($payload['edited_column_name']) ? " (Kolom: {$payload['edited_column_name']})" : '';
             ActivityLog::record(
                 'Sync dari Spreadsheet',
-                "Pembaruan otomatis dari Google Spreadsheet untuk alkes '{$alkes->nama_barang}' (No: {$alkes->no_urut}).",
+                "Pembaruan otomatis dari Google Spreadsheet{$colNote} untuk alkes '{$alkes->nama_barang}' (No: {$alkes->no_urut}).",
                 $alkes->ruangan?->nama_ruangan ?? 'Pusat Data RS',
                 'Google Sheets'
             );
@@ -433,5 +449,102 @@ class GoogleSheetSyncService
                 'nama_barang' => $newAlkes->nama_barang,
             ];
         }
+    }
+
+    /**
+     * Push perintah hapus baris alkes ke Google Spreadsheet melalui Apps Script Webhook.
+     */
+    public function pushDeleteToSheet(int $noUrut): array
+    {
+        $webhookUrl = config('zapin.sheet_webhook_url');
+        if (empty($webhookUrl)) {
+            Log::info("Google Sheet Webhook URL belum diatur. Lewati penghapusan baris di spreadsheet.");
+            return [
+                'success' => false,
+                'message' => 'GOOGLE_SHEET_WEBHOOK_URL belum dikonfigurasi di .env',
+            ];
+        }
+
+        try {
+            $response = Http::timeout(15)
+                ->withHeaders([
+                    'Content-Type' => 'application/json',
+                    'User-Agent' => 'ZAPIN-Sync-Engine/2.0',
+                ])
+                ->post($webhookUrl, [
+                    'secret' => config('zapin.api_key'),
+                    'action' => 'delete_row',
+                    'no_urut' => $noUrut,
+                ]);
+
+            if ($response->successful()) {
+                Log::info("Push hapus alkes #{$noUrut} ke Google Sheet berhasil.");
+                return [
+                    'success' => true,
+                    'data' => $response->json(),
+                ];
+            }
+
+            Log::warning("Push hapus ke Google Sheet mengembalikan HTTP {$response->status()}: " . $response->body());
+            return [
+                'success' => false,
+                'message' => "HTTP {$response->status()}: " . $response->body(),
+            ];
+        } catch (\Throwable $e) {
+            Log::warning("Gagal menghapus baris di Google Sheet: " . $e->getMessage());
+            return [
+                'success' => false,
+                'message' => $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * Menyelaraskan alkes di database dengan daftar no_urut aktif dari Google Spreadsheet.
+     * Alkes di database yang sudah tidak ada di spreadsheet akan dihapus.
+     */
+    public function reconcileActiveRows(array $activeNoUruts): array
+    {
+        if (empty($activeNoUruts)) {
+            return [
+                'success' => false,
+                'message' => 'Daftar active_no_uruts kosong. Rekonsiliasi dibatalkan demi keamanan data.',
+            ];
+        }
+
+        // Pengaman: Jangan hapus jika data spreadsheet yang dikirim terlalu sedikit dibanding database
+        $dbCount = Alkes::count();
+        if (count($activeNoUruts) < 100 && $dbCount > 200) {
+            return [
+                'success' => false,
+                'message' => 'Jumlah baris aktif di spreadsheet terlalu sedikit. Rekonsiliasi dibatalkan demi keamanan.',
+            ];
+        }
+
+        $missingAlkes = Alkes::whereNotIn('no_urut', $activeNoUruts)->get();
+        $deletedCount = 0;
+        $deletedNames = [];
+
+        foreach ($missingAlkes as $alkes) {
+            $name = "{$alkes->nama_barang} (#{$alkes->no_urut})";
+            $deletedNames[] = $name;
+
+            ActivityLog::record(
+                'Sync Hapus dari Spreadsheet',
+                "Alkes '{$alkes->nama_barang}' (No: {$alkes->no_urut}) dihapus otomatis karena barisnya telah dihapus di Google Spreadsheet.",
+                $alkes->ruangan?->nama_ruangan ?? 'Pusat Data RS',
+                'Google Sheets'
+            );
+
+            $alkes->delete();
+            $deletedCount++;
+        }
+
+        return [
+            'success' => true,
+            'deleted_count' => $deletedCount,
+            'deleted_items' => $deletedNames,
+            'message' => "{$deletedCount} data alkes diselaraskan dan dihapus dari sistem ZAPIN.",
+        ];
     }
 }

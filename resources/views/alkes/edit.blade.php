@@ -88,16 +88,16 @@
                 <div>
                     <label class="block text-xs font-medium text-slate-600 mb-1.5">Status ASPAK</label>
                     <select name="aspak_status" class="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400">
-                        <option value="TERDATA" {{ old('aspak_status', $alkes->aspak_status) == 'TERDATA' ? 'selected' : '' }}>TERDATA</option>
-                        <option value="TIDAK TERDATA" {{ old('aspak_status', $alkes->aspak_status) == 'TIDAK TERDATA' ? 'selected' : '' }}>TIDAK TERDATA</option>
+                        <option value="TERDATA" {{ old('aspak_status', $alkes->aspak) == 'TERDATA' ? 'selected' : '' }}>TERDATA</option>
+                        <option value="TIDAK TERDATA" {{ old('aspak_status', $alkes->aspak ?? 'TIDAK TERDATA') == 'TIDAK TERDATA' ? 'selected' : '' }}>TIDAK TERDATA</option>
                     </select>
                 </div>
 
                 <div>
                     <label class="block text-xs font-medium text-slate-600 mb-1.5">Status KIB</label>
                     <select name="kib_status" class="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400">
-                        <option value="0" {{ !old('kib_status', $alkes->kib_status) ? 'selected' : '' }}>NON-KIB</option>
-                        <option value="1" {{ old('kib_status', $alkes->kib_status) ? 'selected' : '' }}>TERDAFTAR KIB</option>
+                        <option value="TERDATA" {{ old('kib_status', $alkes->kib) == 'TERDATA' ? 'selected' : '' }}>TERDATA</option>
+                        <option value="TIDAK TERDATA" {{ old('kib_status', $alkes->kib ?? 'TIDAK TERDATA') == 'TIDAK TERDATA' ? 'selected' : '' }}>TIDAK TERDATA</option>
                     </select>
                 </div>
 

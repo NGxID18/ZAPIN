@@ -11,7 +11,6 @@
                 <i class="ri-building-4-line text-emerald-600"></i>
                 Daftar Ruangan Rumah Sakit
             </h3>
-            <p class="text-sm text-slate-700 mt-1 font-medium">Monitoring daftar unit instalasi & ruangan di RSJKO Engku Haji Daud</p>
         </div>
 
         <div class="flex items-center gap-3 w-full md:w-auto">

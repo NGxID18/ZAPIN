@@ -15,7 +15,6 @@
                 <i class="ri-tools-line text-amber-500"></i>
                 Formulir Lapor Kerusakan Alkes
             </h3>
-            <p class="text-xs text-slate-600 font-medium mt-0.5">Laporkan gejala kerusakan unit alkes untuk penanganan awal oleh Instalasi Elektromedis</p>
         </div>
     </div>
 
@@ -24,7 +23,7 @@
             <div class="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center text-base shrink-0">
                 <i class="ri-information-fill"></i>
             </div>
-            <span><span class="font-extrabold uppercase">Otomatisasi Lokasi:</span> Mengirimkan laporan ini akan otomatis memindahkan status lokasi fisik unit alkes ke Ruangan Elektromedis dan mencatatnya pada log mutasi.</span>
+            <span><span class="font-extrabold uppercase">Otomatisasi Lokasi:</span> Mengirimkan laporan ini akan otomatis memindahkan status lokasi alkes ke Ruangan Elektromedis dan mencatatnya pada log mutasi.</span>
         </div>
         <button type="button" onclick="document.getElementById('infoCreatePemeliharaan').remove()" class="text-amber-600 hover:text-amber-900 p-1 rounded-lg transition">
             <i class="ri-close-line text-lg"></i>
@@ -64,7 +63,7 @@
 
         <div>
             <label class="block text-xs font-extrabold text-slate-800 uppercase tracking-wider mb-2">Gejala & Kendala yang Diamati Ruangan <span class="text-rose-600">*</span></label>
-            <textarea name="gejala_kerusakan" rows="4" required placeholder="Tuliskan kendala awal yang dirasakan (misal: layar mati total saat dinyalakan, bising, eror sensor 02, dll)..." class="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl text-sm font-medium text-slate-900 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"></textarea>
+            <textarea name="deskripsi_kerusakan" rows="4" required placeholder="Tuliskan kendala awal yang dirasakan (misal: layar mati total saat dinyalakan, bising, eror sensor 02, dll)..." class="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl text-sm font-medium text-slate-900 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600">{{ old('deskripsi_kerusakan', old('gejala_kerusakan')) }}</textarea>
             <p class="text-[11px] text-slate-500 font-semibold mt-1">*Catatan: Petugas ruangan memasukkan gejala awal. Diagnosa teknis & tindakan perbaikan akan diisi oleh Elektromedis saat selesai perbaikan.</p>
         </div>
 

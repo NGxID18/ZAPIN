@@ -63,12 +63,46 @@ class KalibrasiController extends Controller
     public function update(Request $request, $id)
     {
         $validated = $request->validate([
-            'status_kalibrasi' => 'required|string',
+            'status_kalibrasi' => 'nullable|string',
             'tanggal_kalibrasi_terakhir' => 'nullable|date',
             'tanggal_kalibrasi_berikutnya' => 'nullable|date',
+            'keterangan' => 'nullable|string',
+            'sertifikat_pdf' => 'nullable|file|mimes:pdf,jpg,jpeg,png,webp|max:10240',
         ]);
 
+        $validated['status_kalibrasi'] = $validated['status_kalibrasi'] ?: 'SUDAH DIKALIBRASI';
+
         $alkes = Alkes::findOrFail($id);
+
+        if ($request->hasFile('sertifikat_pdf')) {
+            $file = $request->file('sertifikat_pdf');
+            $ext = strtolower($file->getClientOriginalExtension() ?: 'pdf');
+            $cleanName = preg_replace('/[^a-zA-Z0-9_-]/', '_', pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME));
+            $fileName = 'sertifikat_' . $alkes->id . '_' . time() . '_' . substr($cleanName, 0, 30) . '.' . $ext;
+
+            // Simpan ke storage publik
+            $file->storeAs('uploads/sertifikat', $fileName, 'public');
+
+            // Salin juga ke database/sertifikat untuk kompatibilitas data lama
+            @copy(storage_path('app/public/uploads/sertifikat/' . $fileName), database_path('sertifikat/' . $fileName));
+
+            $validated['sertifikat_kalibrasi'] = $fileName;
+
+            // Tambahkan entri baru ke riwayat sertifikat multi-tahun
+            $history = is_array($alkes->sertifikat_kalibrasi_history) ? $alkes->sertifikat_kalibrasi_history : [];
+            $history[] = [
+                'file_name' => $fileName,
+                'file_path' => asset('storage/uploads/sertifikat/' . $fileName),
+                'tahun' => !empty($validated['tanggal_kalibrasi_terakhir']) ? substr($validated['tanggal_kalibrasi_terakhir'], 0, 4) : date('Y'),
+                'tanggal' => $validated['tanggal_kalibrasi_terakhir'] ?? date('Y-m-d'),
+                'keterangan' => $validated['keterangan'] ?? 'Sertifikat Kalibrasi Resmi',
+                'created_at' => now()->toIso8601String(),
+            ];
+            $validated['sertifikat_kalibrasi_history'] = $history;
+        }
+
+        unset($validated['sertifikat_pdf']);
+
         $alkes->update($validated);
 
         ActivityLog::record(
@@ -77,15 +111,31 @@ class KalibrasiController extends Controller
             $alkes->ruangan->nama_ruangan ?? null
         );
 
-        return redirect()->route('kalibrasi.index')->with('success', 'Data kalibrasi alkes berhasil diperbarui.');
+        return redirect()->route('kalibrasi.index')->with('success', 'Data kalibrasi dan arsip dokumen alkes berhasil diperbarui.');
     }
 
     public function serveCertificate($filename)
     {
-        $filePath = database_path('sertifikat/' . $filename);
-        if (file_exists($filePath)) {
-            return response()->file($filePath);
+        // Sanitasi ketat terhadap Path Traversal: ekstrak hanya nama file murni
+        $safeName = basename($filename);
+
+        // Validasi ekstensi berkas yang sah
+        $ext = strtolower(pathinfo($safeName, PATHINFO_EXTENSION));
+        $allowedExtensions = ['pdf', 'jpg', 'jpeg', 'png', 'webp'];
+        if (!in_array($ext, $allowedExtensions)) {
+            return redirect()->back()->with('error', 'Format dokumen tidak diizinkan.');
         }
+
+        $storagePath = storage_path('app/public/uploads/sertifikat/' . $safeName);
+        if (file_exists($storagePath)) {
+            return response()->file($storagePath);
+        }
+
+        $dbPath = database_path('sertifikat/' . $safeName);
+        if (file_exists($dbPath)) {
+            return response()->file($dbPath);
+        }
+
         return redirect()->back()->with('error', 'Dokumen sertifikat tidak ditemukan di server.');
     }
 }

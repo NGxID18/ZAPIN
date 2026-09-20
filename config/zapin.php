@@ -14,5 +14,7 @@ return [
     'api_key' => env('ZAPIN_API_KEY'),
 
     'ews_email' => env('EWS_NOTIFICATION_EMAIL', 'kepala.elektromedis@rsjko.local'),
+
+    'default_password' => env('AUTH_DEFAULT_PASSWORD', '1234'),
 ];
 

@@ -29,7 +29,7 @@ auth.json
 !/public/uploads/**/.gitignore
 !/public/uploads/**/.gitkeep
 
-# Database, SQL Dumps & Certificates
+# Database, SQL Dumps & Raw Datasets
 *.sqlite
 *.sqlite-journal
 *.sqlite-wal
@@ -38,31 +38,43 @@ auth.json
 *.sql
 *.sql.gz
 *.dump
+/database/csv_source/*
+!/database/csv_source/.gitkeep
 /database/sertifikat/*
 !/database/sertifikat/.gitignore
+!/database/sertifikat/.gitkeep
 
 # Laravel Storage & Framework Cache
 /storage/*.key
 /storage/*.txt
 /storage/app/*
 !/storage/app/.gitignore
+!/storage/app/.gitkeep
 !/storage/app/public/
 /storage/app/public/*
 !/storage/app/public/.gitignore
+!/storage/app/public/.gitkeep
 /storage/backups/*
 !/storage/backups/.gitignore
+!/storage/backups/.gitkeep
 /storage/framework/cache/*
 !/storage/framework/cache/.gitignore
+!/storage/framework/cache/.gitkeep
 /storage/framework/cache/data/*
 !/storage/framework/cache/data/.gitignore
+!/storage/framework/cache/data/.gitkeep
 /storage/framework/sessions/*
 !/storage/framework/sessions/.gitignore
+!/storage/framework/sessions/.gitkeep
 /storage/framework/testing/*
 !/storage/framework/testing/.gitignore
+!/storage/framework/testing/.gitkeep
 /storage/framework/views/*
 !/storage/framework/views/.gitignore
+!/storage/framework/views/.gitkeep
 /storage/logs/*
 !/storage/logs/.gitignore
+!/storage/logs/.gitkeep
 /bootstrap/cache/*.php
 !/bootstrap/cache/.gitignore
 
@@ -93,11 +105,14 @@ ehthumbs.db
 /.cline/
 /.cursor/
 
-# Temporary & Swap Files
+# Temporary, Archive & Swap Files
 *.tmp
 *.swp
 *.swo
 *~
 *.bak
 *.orig
+*.zip
+*.tar.gz
+*.rar
 .directory

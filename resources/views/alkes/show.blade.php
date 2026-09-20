@@ -32,6 +32,13 @@
                 <a href="{{ route('alkes.edit', $alkes->id) }}" class="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg transition" title="Edit Data Alkes">
                     <i class="ri-edit-line text-sm"></i>
                 </a>
+                <form action="{{ route('alkes.destroy', $alkes->id) }}" method="POST" class="inline" onsubmit="return confirm('Hapus aset \'{{ $alkes->nama_barang }}\' (No: {{ $alkes->no_urut }}) dari ZAPIN dan Google Spreadsheet?');">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit" class="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg transition" title="Hapus Aset">
+                        <i class="ri-delete-bin-line text-sm"></i>
+                    </button>
+                </form>
             @endif
         </div>
     </div>
@@ -76,6 +83,20 @@
                     <span class="text-[10px] text-slate-400 font-medium uppercase block">Tanggal Kalibrasi Terakhir</span>
                     <span class="font-medium text-slate-700 text-sm mt-0.5 block">
                         {{ $alkes->tanggal_kalibrasi_terakhir ? $alkes->tanggal_kalibrasi_terakhir->format('d/m/Y') : 'Belum ada data' }}
+                    </span>
+                </div>
+
+                <div class="p-3 bg-slate-50 rounded-lg border border-slate-100">
+                    <span class="text-[10px] text-slate-400 font-medium uppercase block">Status ASPAK</span>
+                    <span class="font-bold text-sm mt-0.5 block {{ $alkes->aspak === 'TERDATA' ? 'text-emerald-700' : 'text-slate-600' }}">
+                        {{ $alkes->aspak ?: '-' }}
+                    </span>
+                </div>
+
+                <div class="p-3 bg-slate-50 rounded-lg border border-slate-100">
+                    <span class="text-[10px] text-slate-400 font-medium uppercase block">Status KIB</span>
+                    <span class="font-bold text-sm mt-0.5 block {{ $alkes->kib === 'TERDATA' ? 'text-emerald-700' : 'text-slate-600' }}">
+                        {{ $alkes->kib ?: '-' }}
                     </span>
                 </div>
             </div>
@@ -129,13 +150,13 @@
                     </div>
 
                     <div>
-                        <span class="text-[10px] text-slate-400 block">Lokasi Fisik saat Ini:</span>
+                        <span class="text-[10px] text-slate-400 block">Lokasi Alkes:</span>
                         <span class="font-bold text-emerald-700 text-sm block mt-0.5"><i class="ri-map-pin-line text-emerald-600"></i> {{ $alkes->lokasiRuangan->nama_ruangan ?? $alkes->ruangan->nama_ruangan ?? 'RS' }}</span>
                     </div>
 
                     @if ($alkes->lokasi_saat_ini_note)
-                        <div class="p-2.5 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800 font-medium">
-                            📌 {{ $alkes->lokasi_saat_ini_note }}
+                        <div class="p-2.5 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800 font-medium flex items-center gap-1.5">
+                            <i class="ri-information-line"></i> {{ $alkes->lokasi_saat_ini_note }}
                         </div>
                     @endif
                 </div>

@@ -11,7 +11,6 @@
                 <i class="ri-verified-badge-line text-emerald-600"></i>
                 Kalibrasi & Pengujian Berkala Alkes
             </h3>
-            <p class="text-sm text-slate-700 mt-1 font-medium">Kelola jadwal kalibrasi berkala dan dokumen sertifikat resmi alat kesehatan sesuai standar Kemenkes RI</p>
         </div>
         <div class="flex items-center gap-2.5 shrink-0 flex-wrap">
             <a href="{{ config('zapin.google_sheet_url') }}" target="_blank" rel="noopener noreferrer" class="px-4 py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-300 font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-2" title="Buka Portal Google Sheets Live Data">
@@ -222,9 +221,10 @@
                                         <button type="button" 
                                             data-id="{{ $item->id }}" 
                                             data-nama="{{ $item->nama_barang }}" 
+                                            data-status="{{ $item->status_kalibrasi }}"
                                             data-tgl-terakhir="{{ $tglTerakhir ? $tglTerakhir->format('Y-m-d') : '' }}" 
                                             data-tgl-berikutnya="{{ $tglBerikutnya ? $tglBerikutnya->format('Y-m-d') : '' }}" 
-                                            onclick="openUpdateModal(this.dataset.id, this.dataset.nama, this.dataset.tglTerakhir, this.dataset.tglBerikutnya)" 
+                                            onclick="openUpdateModal(this.dataset.id, this.dataset.nama, this.dataset.tglTerakhir, this.dataset.tglBerikutnya, this.dataset.status)" 
                                             class="px-3 py-1.5 bg-emerald-600 text-white hover:bg-emerald-700 rounded-xl font-bold text-xs transition flex items-center justify-center gap-1 shadow-xs">
                                             <i class="ri-edit-box-line"></i> Update
                                         </button>
@@ -284,6 +284,14 @@
             <div>
                 <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Nama Alat Kesehatan</label>
                 <input type="text" id="modalNamaAlkes" class="w-full px-4 py-2.5 bg-slate-100 border border-slate-300 rounded-xl text-sm font-bold text-slate-900" readonly>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-800 uppercase mb-1.5">Status Kelayakan Kalibrasi <span class="text-rose-600">*</span></label>
+                <select name="status_kalibrasi" id="modalStatusKalibrasi" required class="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600">
+                    <option value="SUDAH DIKALIBRASI">SUDAH DIKALIBRASI (Layak & Terverifikasi)</option>
+                    <option value="BELUM DIKALIBRASI">BELUM DIKALIBRASI</option>
+                </select>
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -355,11 +363,15 @@
 </div>
 
 <script>
-    function openUpdateModal(id, namaAlkes, tglTerakhir, tglBerikutnya) {
+    function openUpdateModal(id, namaAlkes, tglTerakhir, tglBerikutnya, statusKalibrasi) {
         document.getElementById('updateKalibrasiForm').action = '/kalibrasi/' + id;
         document.getElementById('modalNamaAlkes').value = namaAlkes;
         document.getElementById('modalTglTerakhir').value = tglTerakhir || '';
         document.getElementById('modalTglBerikutnya').value = tglBerikutnya || '';
+        const statusSelect = document.getElementById('modalStatusKalibrasi');
+        if (statusSelect) {
+            statusSelect.value = (statusKalibrasi === 'SUDAH DIKALIBRASI' || !statusKalibrasi) ? 'SUDAH DIKALIBRASI' : statusKalibrasi;
+        }
         document.getElementById('updateKalibrasiModal').classList.remove('hidden');
     }
 

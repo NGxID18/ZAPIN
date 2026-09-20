@@ -22,9 +22,18 @@ class AuthController extends Controller
         $validated = $request->validate([
             'role' => 'required|string|in:elektromedis,ruangan,tata_usaha',
             'ruangan_id' => 'required_if:role,ruangan|nullable|integer|exists:ruangan,id',
+            'password' => 'required|string',
         ], [
             'ruangan_id.required_if' => 'Silakan pilih ruangan terlebih dahulu.',
+            'password.required' => 'Kata sandi wajib diisi.',
         ]);
+
+        $defaultPassword = (string) config('zapin.default_password', '1234');
+        if ($validated['password'] !== $defaultPassword) {
+            return redirect()->back()
+                ->withInput($request->except('password'))
+                ->with('error', 'Kata sandi salah.');
+        }
 
         $request->session()->regenerate();
 

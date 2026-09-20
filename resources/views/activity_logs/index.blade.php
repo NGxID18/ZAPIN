@@ -11,7 +11,6 @@
                 <i class="ri-history-line text-emerald-600"></i>
                 Log Aktivitas & Audit Trail Sistem
             </h3>
-            <p class="text-sm text-slate-700 mt-1 font-medium">Pelacakan otomatis seluruh aktivitas pengguna, perubahan data, dan transaksi aset</p>
         </div>
     </div>
 

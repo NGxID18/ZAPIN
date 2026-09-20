@@ -11,7 +11,6 @@
                 <i class="ri-exchange-line text-sky-500"></i>
                 Peminjaman Alat (Sementara)
             </h3>
-            <p class="text-sm text-slate-700 mt-1 font-medium">Pelacakan peminjaman alkes antar ruangan secara real-time</p>
         </div>
         <button type="button" onclick="document.getElementById('peminjamanModal').classList.remove('hidden')" class="px-5 py-2.5 bg-sky-500 hover:bg-sky-600 text-white font-extrabold text-xs rounded-xl shadow-md transition flex items-center gap-2 shrink-0">
             <i class="ri-add-line text-lg"></i>

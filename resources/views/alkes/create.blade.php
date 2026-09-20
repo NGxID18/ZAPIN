@@ -11,7 +11,6 @@
         </a>
         <div>
             <h3 class="text-2xl font-black text-slate-900 tracking-tight">Registrasi Inventaris Alkes Baru</h3>
-            <p class="text-sm font-medium text-slate-700 mt-0.5">Menambahkan unit alat kesehatan baru ke ruangan RSJKO Engku Haji Daud</p>
         </div>
     </div>
 
@@ -88,16 +87,16 @@
                 <div>
                     <label class="block text-xs font-black text-slate-800 uppercase tracking-wider mb-2">Status ASPAK Kemenkes</label>
                     <select name="aspak_status" class="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl text-sm font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600">
-                        <option value="TERDATA">TERDATA</option>
-                        <option value="TIDAK TERDATA">TIDAK TERDATA</option>
+                        <option value="TERDATA" {{ old('aspak_status') == 'TERDATA' ? 'selected' : '' }}>TERDATA</option>
+                        <option value="TIDAK TERDATA" {{ old('aspak_status', 'TIDAK TERDATA') == 'TIDAK TERDATA' ? 'selected' : '' }}>TIDAK TERDATA</option>
                     </select>
                 </div>
 
                 <div>
                     <label class="block text-xs font-black text-slate-800 uppercase tracking-wider mb-2">Status KIB</label>
                     <select name="kib_status" class="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl text-sm font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600">
-                        <option value="0">NON-KIB (FALSE)</option>
-                        <option value="1">TERDAFTAR KIB (TRUE)</option>
+                        <option value="TERDATA" {{ old('kib_status') == 'TERDATA' ? 'selected' : '' }}>TERDATA</option>
+                        <option value="TIDAK TERDATA" {{ old('kib_status', 'TIDAK TERDATA') == 'TIDAK TERDATA' ? 'selected' : '' }}>TIDAK TERDATA</option>
                     </select>
                 </div>
 

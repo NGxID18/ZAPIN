@@ -53,6 +53,11 @@ class PeminjamanAlkesController extends Controller
             'keterangan' => 'nullable|string',
         ]);
 
+        // Proteksi Otorisasi: Pastikan peran ruangan meminjam atas nama ruangannya sendiri
+        if (session('user_role') === 'ruangan' && session('user_ruangan_id')) {
+            $validated['ruangan_peminjam_id'] = (int) session('user_ruangan_id');
+        }
+
         DB::transaction(function () use ($validated) {
             $alkes = Alkes::where('id', $validated['alkes_id'])->lockForUpdate()->firstOrFail();
 
@@ -94,6 +99,18 @@ class PeminjamanAlkesController extends Controller
 
             if ($peminjaman->status === 'Dikembalikan') {
                 abort(422, 'Peminjaman alat ini sudah dikembalikan sebelumnya.');
+            }
+
+            // Validasi Otorisasi Pengembalian: Elektromedis, Ruang Peminjam, atau Pemilik Aset
+            $userRole = session('user_role');
+            $userRuanganId = (int) session('user_ruangan_id');
+            if ($userRole === 'ruangan' && $userRuanganId) {
+                $alkesCheck = Alkes::find($peminjaman->alkes_id);
+                $isAuthorized = ($userRuanganId === (int) $peminjaman->ruangan_peminjam_id || 
+                                ($alkesCheck && $userRuanganId === (int) $alkesCheck->ruangan_id));
+                if (!$isAuthorized) {
+                    abort(403, 'Akses Ditolak: Anda tidak memiliki wewenang untuk menyelesaikan pengembalian alat ini.');
+                }
             }
 
             $peminjaman->update([

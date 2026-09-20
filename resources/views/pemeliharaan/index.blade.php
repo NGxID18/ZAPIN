@@ -15,7 +15,6 @@
                 <i class="ri-tools-line text-amber-500"></i>
                 Perbaikan & Pemeliharaan Alkes
             </h3>
-            <p class="text-sm text-slate-700 mt-1 font-medium">Pengawasan laporan kerusakan alkes, penanganan teknis elektromedis, dan riwayat perbaikan</p>
         </div>
         <a href="{{ route('pemeliharaan.create') }}" class="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-xs rounded-xl shadow-md transition flex items-center gap-2 shrink-0">
             <i class="ri-add-line text-lg"></i>
@@ -148,6 +147,13 @@
                                 <div class="text-xs font-medium text-slate-900 leading-relaxed whitespace-pre-line">
                                     {{ $log->deskripsi_kerusakan ?: '-' }}
                                 </div>
+                                @if ($log->foto_kerusakan)
+                                    <div class="mt-2">
+                                        <a href="{{ asset('storage/' . $log->foto_kerusakan) }}" target="_blank" class="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 rounded-lg text-[11px] font-bold transition shadow-2xs">
+                                            <i class="ri-image-line text-amber-600"></i> Lampiran Foto
+                                        </a>
+                                    </div>
+                                @endif
                             </td>
 
                             <td class="py-3.5 px-4 border-r border-slate-200 max-w-[260px]">

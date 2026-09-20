@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Enums\KondisiAlkes;
+use App\Enums\StatusAlkes;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -82,65 +84,14 @@ class Alkes extends Model
         return $this->tahun;
     }
 
-    public function getKondisiEnumAttribute(): object
+    public function getKondisiEnumAttribute(): KondisiAlkes
     {
-        $val = trim($this->kondisi ?? '');
-        $upper = strtoupper($val);
-
-        if (str_contains($upper, 'BERAT')) {
-            return new class($val) {
-                public function __construct(private string $val) {}
-                public function label(): string { return $this->val ?: 'Rusak Berat'; }
-                public function warnaBadge(): string { return 'bg-rose-100 text-rose-800 border-rose-300'; }
-            };
-        }
-
-        if (str_contains($upper, 'RINGAN')) {
-            return new class($val) {
-                public function __construct(private string $val) {}
-                public function label(): string { return $this->val ?: 'Rusak Ringan'; }
-                public function warnaBadge(): string { return 'bg-amber-100 text-amber-800 border-amber-300'; }
-            };
-        }
-
-        if ($upper === 'BAIK') {
-            return new class($val) {
-                public function __construct(private string $val) {}
-                public function label(): string { return 'Baik'; }
-                public function warnaBadge(): string { return 'bg-emerald-100 text-emerald-800 border-emerald-300'; }
-            };
-        }
-
-        // Jika kondisi kosong di spreadsheet
-        return new class($val) {
-            public function __construct(private string $val) {}
-            public function label(): string { return '-'; }
-            public function warnaBadge(): string { return 'bg-slate-100 text-slate-600 border-slate-200'; }
-        };
+        return KondisiAlkes::fromRaw($this->kondisi);
     }
 
-    public function getStatusEnumAttribute(): object
+    public function getStatusEnumAttribute(): StatusAlkes
     {
-        $status = $this->status ?? 'Tersedia';
-
-        if ($status === 'Dipinjam') {
-            return new class {
-                public function label(): string { return 'Dipinjam'; }
-                public function warnaBadge(): string { return 'bg-blue-100 text-blue-800 border-blue-300'; }
-            };
-        }
-
-        if ($status === 'Dalam Perbaikan') {
-            return new class {
-                public function label(): string { return 'Dalam Perbaikan'; }
-                public function warnaBadge(): string { return 'bg-amber-100 text-amber-800 border-amber-300'; }
-            };
-        }
-
-        return new class {
-            public function label(): string { return 'Tersedia'; }
-            public function warnaBadge(): string { return 'bg-emerald-100 text-emerald-800 border-emerald-300'; }
-        };
+        return StatusAlkes::fromRaw($this->status);
     }
 
     public function scopeAccessibleByCurrentRole($query)

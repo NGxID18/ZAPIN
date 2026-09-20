@@ -16,7 +16,7 @@
             </div>
             <div>
                 <p class="font-extrabold text-base text-white tracking-tight">Selamat Datang di ZAPIN</p>
-                <p class="text-xs text-emerald-200 mt-0.5 font-medium">Zona Aplikasi Pengelolaan Inventaris Alat Kesehatan RSJKO Engku Haji Daud &middot; Aktif sebagai <span class="font-bold text-amber-300">{{ session('user_role_label', 'Instalasi Elektromedis') }}</span></p>
+                <p class="text-xs text-emerald-200 mt-0.5 font-medium">Masuk sebagai <span class="font-bold text-amber-300">{{ session('user_role_label', 'Instalasi Elektromedis') }}</span></p>
             </div>
         </div>
         <button type="button" onclick="document.getElementById('welcomeBanner').remove()" class="text-emerald-200 hover:text-white p-1.5 rounded-lg transition" title="Tutup">

@@ -15,7 +15,6 @@
                 <i class="ri-arrow-left-right-line text-indigo-600"></i>
                 Formulir Pindah Ruangan Alkes
             </h3>
-            <p class="text-xs text-slate-600 font-medium mt-0.5">Memindahkan lokasi keberadaan fisik unit alkes ke instalasi/ruangan lain</p>
         </div>
     </div>
 

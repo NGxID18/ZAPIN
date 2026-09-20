@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Masuk Sistem - ZAPIN RSJKO Engku Haji Daud</title>
+    <title>ZAPIN</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -145,6 +145,25 @@
                         <input type="radio" name="role" value="tata_usaha" onchange="handleRoleChange(this)" class="w-4 h-4 text-amber-400 focus:ring-amber-400 border-slate-600 bg-transparent shrink-0">
                         <span class="font-black text-white text-base">Manajemen / Penunjang</span>
                     </label>
+                </div>
+            </div>
+
+            <!-- Input Kata Sandi -->
+            <div class="space-y-1.5 pt-1">
+                <label for="passwordInput" class="block text-xs font-black text-amber-300 uppercase tracking-wider">KATA SANDI</label>
+                <div class="relative">
+                    <input type="password"
+                           name="password"
+                           id="passwordInput"
+                           required
+                           placeholder="Masukkan kata sandi..."
+                           class="w-full px-4 py-3 bg-slate-900/60 border border-slate-700/80 rounded-xl text-white font-bold text-sm focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400 backdrop-blur-xs transition pr-11">
+                    <button type="button"
+                            onclick="togglePasswordVisibility()"
+                            class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-amber-300 transition focus:outline-none"
+                            title="Tampilkan / Sembunyikan Sandi">
+                        <i id="passwordToggleIcon" class="ri-eye-line text-lg"></i>
+                    </button>
                 </div>
             </div>
 
@@ -291,6 +310,19 @@
                 }
             }
         });
+
+        function togglePasswordVisibility() {
+            const pwd = document.getElementById('passwordInput');
+            const icon = document.getElementById('passwordToggleIcon');
+            if (!pwd) return;
+            if (pwd.type === 'password') {
+                pwd.type = 'text';
+                icon.className = 'ri-eye-off-line text-lg text-amber-300';
+            } else {
+                pwd.type = 'password';
+                icon.className = 'ri-eye-line text-lg';
+            }
+        }
     </script>
 </body>
 </html>

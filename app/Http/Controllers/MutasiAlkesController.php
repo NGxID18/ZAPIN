@@ -54,7 +54,7 @@ class MutasiAlkesController extends Controller
         return view('mutasi.create', compact('alkesList', 'ruanganList', 'selectedAlkesId'));
     }
 
-    public function store(Request $request)
+    public function store(Request $request, \App\Services\GoogleSheetSyncService $syncService)
     {
         $validated = $request->validate([
             'alkes_id' => 'required|exists:alkes,id',
@@ -64,9 +64,24 @@ class MutasiAlkesController extends Controller
             'alasan_mutasi' => 'required|string',
         ]);
 
-        DB::transaction(function () use ($validated) {
+        $alkes = null;
+        DB::transaction(function () use ($validated, &$alkes) {
             $alkes = Alkes::where('id', $validated['alkes_id'])->lockForUpdate()->firstOrFail();
             $ruanganAsalId = $alkes->lokasi_ruangan_id ?? $alkes->ruangan_id;
+
+            // Proteksi Otorisasi (IDOR Prevention): Peran ruangan hanya boleh memutasi alat miliknya
+            $userRole = session('user_role');
+            $userRuanganId = (int) session('user_ruangan_id');
+            if ($userRole === 'ruangan' && $userRuanganId) {
+                $isPermitted = ($alkes->ruangan_id === $userRuanganId || $alkes->lokasi_ruangan_id === $userRuanganId);
+                if (!$isPermitted) {
+                    abort(403, 'Akses Ditolak: Anda hanya memiliki hak akses untuk memutasi alat kesehatan di ruangan Anda.');
+                }
+            }
+
+            if ((int) $validated['ruangan_tujuan_id'] === (int) $ruanganAsalId) {
+                abort(422, 'Ruangan tujuan mutasi tidak boleh sama dengan ruangan saat ini.');
+            }
 
             $mutasi = MutasiAlkes::create([
                 'alkes_id' => $alkes->id,
@@ -92,6 +107,10 @@ class MutasiAlkesController extends Controller
                 $ruanganTujuan->nama_ruangan
             );
         });
+
+        if ($alkes) {
+            $syncService->pushUpdateToSheet($alkes->fresh());
+        }
 
         return redirect()->route('mutasi.index')->with('success', 'Mutasi perpindahan alat berhasil dicatat ke database.');
     }
