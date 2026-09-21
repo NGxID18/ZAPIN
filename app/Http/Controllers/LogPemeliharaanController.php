@@ -6,6 +6,7 @@ use App\Models\ActivityLog;
 use App\Models\Alkes;
 use App\Models\LogPemeliharaan;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class LogPemeliharaanController extends Controller
 {
@@ -95,26 +96,28 @@ class LogPemeliharaanController extends Controller
             $fotoPath = $file->storeAs('uploads/kerusakan', $filename, 'public');
         }
 
-        $log = LogPemeliharaan::create([
-            'alkes_id' => $alkes->id,
-            'jenis_tindakan' => $validated['jenis_tindakan'] ?? 'Perbaikan Fisik',
-            'tanggal_mulai' => $request->filled('tanggal_lapor') ? $request->tanggal_lapor : now(),
-            'deskripsi_kerusakan' => $validated['deskripsi_kerusakan'],
-            'foto_kerusakan' => $fotoPath,
-            'status_hasil' => 'Proses',
-        ]);
+        DB::transaction(function () use ($alkes, $validated, $request, $fotoPath) {
+            $log = LogPemeliharaan::create([
+                'alkes_id' => $alkes->id,
+                'jenis_tindakan' => $validated['jenis_tindakan'] ?? 'Perbaikan Fisik',
+                'tanggal_mulai' => $request->filled('tanggal_lapor') ? $request->tanggal_lapor : now(),
+                'deskripsi_kerusakan' => $validated['deskripsi_kerusakan'],
+                'foto_kerusakan' => $fotoPath,
+                'status_hasil' => 'Proses',
+            ]);
 
-        $alkes->update([
-            'status' => 'Dalam Perbaikan',
-            'kondisi' => 'RUSAK RINGAN',
-            'lokasi_saat_ini_note' => 'Dalam Perbaikan Elektromedis',
-        ]);
+            $alkes->update([
+                'status' => 'Dalam Perbaikan',
+                'kondisi' => 'RUSAK RINGAN',
+                'lokasi_saat_ini_note' => 'Dalam Perbaikan Elektromedis',
+            ]);
 
-        ActivityLog::record(
-            'Lapor Kerusakan',
-            "Pelaporan kerusakan alkes '{$alkes->nama_barang}' (SN: " . ($alkes->nomor_seri ?: '-') . "): {$validated['deskripsi_kerusakan']}",
-            $alkes->ruangan->nama_ruangan ?? null
-        );
+            ActivityLog::record(
+                'Lapor Kerusakan',
+                "Pelaporan kerusakan alkes '{$alkes->nama_barang}' (SN: " . ($alkes->nomor_seri ?: '-') . "): {$validated['deskripsi_kerusakan']}",
+                $alkes->ruangan->nama_ruangan ?? null
+            );
+        });
 
         return redirect()->route('pemeliharaan.index')->with('success', 'Laporan kerusakan alkes berhasil dikirim ke Instalasi Elektromedis.');
     }
@@ -127,28 +130,31 @@ class LogPemeliharaanController extends Controller
             'pelaksana_vendor' => 'nullable|string',
         ]);
 
-        $log = LogPemeliharaan::findOrFail($id);
-        $log->update([
-            'tindakan_perbaikan' => $validated['tindakan_perbaikan'],
-            'biaya' => $validated['biaya'] ?? 0,
-            'pelaksana_vendor' => $validated['pelaksana_vendor'] ?? 'Teknisi Elektromedis RS',
-            'tanggal_selesai' => now(),
-            'status_hasil' => 'Selesai',
-        ]);
-
-        $alkes = Alkes::find($log->alkes_id);
-        if ($alkes) {
-            $alkes->update([
-                'status' => 'Tersedia',
-                'kondisi' => 'BAIK',
+        DB::transaction(function () use ($id, $validated) {
+            $log = LogPemeliharaan::where('id', $id)->lockForUpdate()->firstOrFail();
+            $log->update([
+                'tindakan_perbaikan' => $validated['tindakan_perbaikan'],
+                'biaya' => $validated['biaya'] ?? 0,
+                'pelaksana_vendor' => $validated['pelaksana_vendor'] ?? 'Teknisi Elektromedis RS',
+                'tanggal_selesai' => now(),
+                'status_hasil' => 'Selesai',
             ]);
 
-            ActivityLog::record(
-                'Perbaikan Selesai',
-                "Perbaikan alkes '{$alkes->nama_barang}' selesai ditangani: {$validated['tindakan_perbaikan']}",
-                $alkes->ruangan->nama_ruangan ?? null
-            );
-        }
+            $alkes = Alkes::where('id', $log->alkes_id)->lockForUpdate()->first();
+            if ($alkes) {
+                $alkes->update([
+                    'status' => 'Tersedia',
+                    'kondisi' => 'BAIK',
+                    'lokasi_saat_ini_note' => null,
+                ]);
+
+                ActivityLog::record(
+                    'Perbaikan Selesai',
+                    "Perbaikan alkes '{$alkes->nama_barang}' selesai ditangani: {$validated['tindakan_perbaikan']}",
+                    $alkes->ruangan->nama_ruangan ?? null
+                );
+            }
+        });
 
         return redirect()->route('pemeliharaan.index')->with('success', 'Perbaikan alkes berhasil ditandai selesai dan unit kembali beroperasi normal.');
     }

@@ -30,7 +30,7 @@ enum KondisiAlkes: string
             self::BAIK => 'Baik',
             self::RUSAK_RINGAN => 'Rusak Ringan',
             self::RUSAK_BERAT => 'Rusak Berat',
-            self::UNKNOWN => '-',
+            self::UNKNOWN => 'Tanpa Keterangan Kondisi (-)',
         };
     }
 

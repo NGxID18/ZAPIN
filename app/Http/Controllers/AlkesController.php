@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\KondisiAlkes;
+use App\Enums\StatusAlkes;
 use App\Models\ActivityLog;
 use App\Models\Alkes;
 use App\Models\Ruangan;
@@ -253,10 +255,10 @@ class AlkesController extends Controller
      */
     public function handleSheetWebhookUpdate(Request $request, GoogleSheetSyncService $syncService)
     {
-        $incomingSecret = $request->header('X-Zapin-Secret') ?? $request->input('secret');
-        $expectedSecret = config('zapin.api_key');
+        $incomingSecret = (string) ($request->header('X-Zapin-Secret') ?? $request->input('secret') ?? '');
+        $expectedSecret = (string) config('zapin.api_key');
 
-        if (empty($expectedSecret) || $incomingSecret !== $expectedSecret) {
+        if (empty($expectedSecret) || !hash_equals($expectedSecret, $incomingSecret)) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Unauthorized: Kunci API rahasia (secret key) tidak valid atau tidak disertakan.',
@@ -323,21 +325,14 @@ class AlkesController extends Controller
 
     protected function getKondisiOptions(bool $includeEmpty = false): array
     {
-        $createOption = function(string $value, string $label) {
-            return new class($value, $label) {
-                public function __construct(public string $value, public string $labelTitle) {}
-                public function label(): string { return $this->labelTitle; }
-            };
-        };
-
         $options = [
-            $createOption('BAIK', 'BAIK'),
-            $createOption('RUSAK RINGAN', 'RUSAK RINGAN'),
-            $createOption('RUSAK BERAT', 'RUSAK BERAT'),
+            KondisiAlkes::BAIK,
+            KondisiAlkes::RUSAK_RINGAN,
+            KondisiAlkes::RUSAK_BERAT,
         ];
 
         if ($includeEmpty) {
-            $options[] = $createOption('-', 'Tanpa Keterangan Kondisi (-)');
+            $options[] = KondisiAlkes::UNKNOWN;
         }
 
         return $options;
@@ -345,17 +340,10 @@ class AlkesController extends Controller
 
     protected function getStatusOptions(): array
     {
-        $createOption = function(string $value, string $label) {
-            return new class($value, $label) {
-                public function __construct(public string $value, public string $labelTitle) {}
-                public function label(): string { return $this->labelTitle; }
-            };
-        };
-
         return [
-            $createOption('Tersedia', 'Tersedia'),
-            $createOption('Dipinjam', 'Dipinjam'),
-            $createOption('Dalam Perbaikan', 'Dalam Perbaikan'),
+            StatusAlkes::TERSEDIA,
+            StatusAlkes::DIPINJAM,
+            StatusAlkes::DALAM_PERBAIKAN,
         ];
     }
 }

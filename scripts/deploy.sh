@@ -45,7 +45,8 @@ mkdir -p storage/app/public/uploads/kerusakan storage/app/public/uploads/sertifi
 
 # 4. Inisialisasi Aplikasi Laravel
 echo "[4/6] Menjalankan migrasi, seeder Google Spreadsheet, dan optimasi cache..."
-php artisan storage:link || true
+rm -rf public/storage
+php artisan storage:link
 php artisan migrate --force
 php artisan db:seed --force
 php artisan config:cache

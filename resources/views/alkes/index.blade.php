@@ -8,15 +8,6 @@
     $sortBy = request('sort_by', 'nama_barang');
     $sortDir = strtolower(request('sort_dir', 'asc')) === 'desc' ? 'desc' : 'asc';
     $currentRole = session('user_role', 'elektromedis');
-
-    if (!function_exists('makeSortUrl')) {
-        function makeSortUrl($column, $currentSortBy, $currentSortDir) {
-            $queryParams = request()->query();
-            $queryParams['sort_by'] = $column;
-            $queryParams['sort_dir'] = ($currentSortBy === $column && $currentSortDir === 'asc') ? 'desc' : 'asc';
-            return route('alkes.index', $queryParams);
-        }
-    }
 @endphp
 
 @section('title', $pageTitle)
@@ -168,7 +159,7 @@
                     <tr class="bg-emerald-950 text-white border-b border-emerald-900 text-xs font-black uppercase tracking-wider select-none">
                         <th class="px-3 py-3.5 text-center border-r border-emerald-900 w-12">No</th>
                         <th class="px-4 py-3.5 border-r border-emerald-900 w-52">
-                            <a href="{{ makeSortUrl('nama_barang', $sortBy, $sortDir) }}" class="flex items-center justify-between hover:text-amber-300 transition" title="Urutkan A-Z / Z-A">
+                            <a href="{{ request()->fullUrlWithQuery(['sort_by' => 'nama_barang', 'sort_dir' => ($sortBy === 'nama_barang' && $sortDir === 'asc') ? 'desc' : 'asc']) }}" class="flex items-center justify-between hover:text-amber-300 transition" title="Urutkan A-Z / Z-A">
                                 <span>Nama Barang</span>
                                 <i class="ri-arrow-up-down-line text-sm {{ $sortBy == 'nama_barang' ? 'text-amber-300 opacity-100' : 'opacity-50' }}"></i>
                             </a>
@@ -180,7 +171,7 @@
                         <th class="px-3.5 py-3.5 border-r border-emerald-900 w-36">Ruang Pemilik</th>
                         <th class="px-3.5 py-3.5 border-r border-emerald-900 w-40">Lokasi Alkes</th>
                         <th class="px-3.5 py-3.5 border-r border-emerald-900 w-32">
-                            <a href="{{ makeSortUrl('kondisi', $sortBy, $sortDir) }}" class="flex items-center justify-between hover:text-amber-300 transition" title="Urutkan Kondisi">
+                            <a href="{{ request()->fullUrlWithQuery(['sort_by' => 'kondisi', 'sort_dir' => ($sortBy === 'kondisi' && $sortDir === 'asc') ? 'desc' : 'asc']) }}" class="flex items-center justify-between hover:text-amber-300 transition" title="Urutkan Kondisi">
                                 <span>Kondisi</span>
                                 <i class="ri-arrow-up-down-line text-sm {{ $sortBy == 'kondisi' ? 'text-amber-300 opacity-100' : 'opacity-50' }}"></i>
                             </a>

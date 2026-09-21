@@ -149,7 +149,10 @@ class GoogleSheetSyncService
                 // Cari record alkes yang cocok: prioritas utama berdasarkan no_urut spreadsheet (1..638)
                 $alkes = null;
                 if ($noUrut !== null) {
-                    $alkes = Alkes::where('no_urut', $noUrut)->first();
+                    $alkes = Alkes::withTrashed()->where('no_urut', $noUrut)->first();
+                    if ($alkes && $alkes->trashed()) {
+                        $alkes->restore();
+                    }
                 }
 
                 $dataPayload = [
@@ -327,7 +330,10 @@ class GoogleSheetSyncService
             ];
         }
 
-        $alkes = Alkes::where('no_urut', $noUrut)->first();
+        $alkes = Alkes::withTrashed()->where('no_urut', $noUrut)->first();
+        if ($alkes && $alkes->trashed()) {
+            $alkes->restore();
+        }
         $updateFields = [];
 
         if (array_key_exists('nama_barang', $data) && !empty(trim((string)$data['nama_barang']))) {

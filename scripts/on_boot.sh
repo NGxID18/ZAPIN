@@ -12,8 +12,11 @@ sleep 5
 # Set umask agar file yang dibuat dapat dibaca & ditimpa oleh www-data
 umask 000
 
-# 1. Pastikan symlink storage publik selalu aktif
-/usr/bin/php artisan storage:link >/dev/null 2>&1 || true
+# 1. Pastikan symlink storage publik selalu aktif dan valid
+if [ ! -L "$PROJECT_DIR/public/storage" ] || [ ! -e "$PROJECT_DIR/public/storage" ]; then
+    rm -rf "$PROJECT_DIR/public/storage"
+    /usr/bin/php artisan storage:link >/dev/null 2>&1 || true
+fi
 
 # 2. Pastikan struktur database up-to-date
 /usr/bin/php artisan migrate --force >/dev/null 2>&1 || true

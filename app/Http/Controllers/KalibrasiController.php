@@ -83,9 +83,6 @@ class KalibrasiController extends Controller
             // Simpan ke storage publik
             $file->storeAs('uploads/sertifikat', $fileName, 'public');
 
-            // Salin juga ke database/sertifikat untuk kompatibilitas data lama
-            @copy(storage_path('app/public/uploads/sertifikat/' . $fileName), database_path('sertifikat/' . $fileName));
-
             $validated['sertifikat_kalibrasi'] = $fileName;
 
             // Tambahkan entri baru ke riwayat sertifikat multi-tahun
