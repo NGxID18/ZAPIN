@@ -241,6 +241,39 @@ class GoogleSheetSyncService
     }
 
     /**
+     * Format payload alkes yang konsisten untuk dikirim ke Google Spreadsheet.
+     */
+    public function formatAlkesPayload(Alkes $alkes): array
+    {
+        $rawKib = strtoupper(trim((string)($alkes->kib ?? '')));
+        $kib = in_array($rawKib, ['TERDATA', 'TERDAFTAR', 'TERDAFTAR KIB', '1', 'TRUE']) ? 'TERDATA' : 'TIDAK TERDATA';
+
+        $rawAspak = strtoupper(trim((string)($alkes->aspak ?? '')));
+        $aspak = in_array($rawAspak, ['TERDATA', 'TERDAFTAR', '1', 'TRUE']) ? 'TERDATA' : 'TIDAK TERDATA';
+
+        return [
+            'no_urut' => $alkes->no_urut,
+            'nama_barang' => $alkes->nama_barang,
+            'merk' => $alkes->merk,
+            'tipe' => $alkes->tipe,
+            'nomor_seri' => $alkes->nomor_seri,
+            'tahun' => $alkes->tahun,
+            'jumlah' => $alkes->jumlah,
+            'cara_perolehan' => $alkes->cara_perolehan,
+            'nilai_perolehan' => $alkes->nilai_perolehan,
+            'distributor' => $alkes->distributor,
+            'ruangan' => $alkes->ruangan?->nama_ruangan ?? '',
+            'lokasi_saat_ini' => $alkes->lokasiRuangan?->nama_ruangan ?? $alkes->lokasi_saat_ini_note ?? '',
+            'kondisi' => $alkes->kondisi ?? '',
+            'aspak' => $aspak,
+            'kib' => $kib,
+            'non_kib_dan_aspak' => $alkes->non_kib_dan_aspak ?? '',
+            'akl_akd' => $alkes->akl_akd ?? '',
+            'keterangan' => $alkes->keterangan ?? '',
+        ];
+    }
+
+    /**
      * Push pembaruan data alkes dari ZAPIN ke Google Spreadsheet melalui Apps Script Webhook.
      */
     public function pushUpdateToSheet(Alkes $alkes): array
@@ -254,35 +287,10 @@ class GoogleSheetSyncService
             ];
         }
 
-        $rawKib = strtoupper(trim((string)($alkes->kib ?? '')));
-        $kib = in_array($rawKib, ['TERDATA', 'TERDAFTAR', 'TERDAFTAR KIB', '1', 'TRUE']) ? 'TERDATA' : 'TIDAK TERDATA';
-
-        $rawAspak = strtoupper(trim((string)($alkes->aspak ?? '')));
-        $aspak = in_array($rawAspak, ['TERDATA', 'TERDAFTAR', '1', 'TRUE']) ? 'TERDATA' : 'TIDAK TERDATA';
-
         $payload = [
             'secret' => config('zapin.api_key'),
             'action' => 'update_row',
-            'data' => [
-                'no_urut' => $alkes->no_urut,
-                'nama_barang' => $alkes->nama_barang,
-                'merk' => $alkes->merk,
-                'tipe' => $alkes->tipe,
-                'nomor_seri' => $alkes->nomor_seri,
-                'tahun' => $alkes->tahun,
-                'jumlah' => $alkes->jumlah,
-                'cara_perolehan' => $alkes->cara_perolehan,
-                'nilai_perolehan' => $alkes->nilai_perolehan,
-                'distributor' => $alkes->distributor,
-                'ruangan' => $alkes->ruangan?->nama_ruangan ?? '',
-                'lokasi_saat_ini' => $alkes->lokasiRuangan?->nama_ruangan ?? $alkes->lokasi_saat_ini_note ?? '',
-                'kondisi' => $alkes->kondisi ?? '',
-                'aspak' => $aspak,
-                'kib' => $kib,
-                'non_kib_dan_aspak' => $alkes->non_kib_dan_aspak ?? '',
-                'akl_akd' => $alkes->akl_akd ?? '',
-                'keterangan' => $alkes->keterangan ?? '',
-            ],
+            'data' => $this->formatAlkesPayload($alkes),
         ];
 
         try {
@@ -308,6 +316,67 @@ class GoogleSheetSyncService
             ];
         } catch (\Throwable $e) {
             Log::warning("Gagal mengirim update ke Google Sheet: " . $e->getMessage());
+            return [
+                'success' => false,
+                'message' => $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * Push sekumpulan data alkes (batch) sekaligus ke Google Spreadsheet via satu kali HTTP request.
+     */
+    public function pushBatchUpdateToSheet(array $alkesList): array
+    {
+        $webhookUrl = config('zapin.sheet_webhook_url');
+        if (empty($webhookUrl)) {
+            Log::info("Google Sheet Webhook URL belum diatur. Lewati pengiriman batch ke spreadsheet.");
+            return [
+                'success' => false,
+                'message' => 'GOOGLE_SHEET_WEBHOOK_URL belum dikonfigurasi di .env',
+            ];
+        }
+
+        $items = [];
+        foreach ($alkesList as $unit) {
+            if ($unit instanceof Alkes) {
+                $items[] = $this->formatAlkesPayload($unit->fresh());
+            }
+        }
+
+        if (empty($items)) {
+            return ['success' => true, 'message' => 'Tidak ada item untuk disinkronkan.'];
+        }
+
+        $payload = [
+            'secret' => config('zapin.api_key'),
+            'action' => 'batch_update_rows',
+            'items' => $items,
+        ];
+
+        try {
+            $response = Http::timeout(25)
+                ->withHeaders([
+                    'Content-Type' => 'application/json',
+                    'User-Agent' => 'ZAPIN-Sync-Engine/2.0',
+                ])
+                ->post($webhookUrl, $payload);
+
+            if ($response->successful()) {
+                Log::info("Push batch " . count($items) . " unit alkes ke Google Sheet berhasil.");
+                return [
+                    'success' => true,
+                    'data' => $response->json(),
+                ];
+            }
+
+            Log::warning("Push batch ke Google Sheet HTTP {$response->status()}: " . $response->body());
+            return [
+                'success' => false,
+                'message' => "HTTP {$response->status()}: " . $response->body(),
+            ];
+        } catch (\Throwable $e) {
+            Log::warning("Gagal mengirim batch update ke Google Sheet: " . $e->getMessage());
             return [
                 'success' => false,
                 'message' => $e->getMessage(),

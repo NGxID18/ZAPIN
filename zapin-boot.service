@@ -1,0 +1,16 @@
+[Unit]
+Description=ZAPIN Hospital Medical Equipment System Boot Service
+After=network.target postgresql.service php8.4-fpm.service nginx.service
+Wants=postgresql.service php8.4-fpm.service nginx.service
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/home/ngxid18/ZAPIN
+ExecStart=/bin/bash /home/ngxid18/ZAPIN/scripts/on_boot.sh
+RemainAfterExit=yes
+StandardOutput=journal+console
+StandardError=journal+console
+
+[Install]
+WantedBy=multi-user.target

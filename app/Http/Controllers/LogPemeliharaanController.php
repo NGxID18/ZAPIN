@@ -91,7 +91,9 @@ class LogPemeliharaanController extends Controller
         $fotoPath = null;
         if ($request->hasFile('foto_kerusakan')) {
             $file = $request->file('foto_kerusakan');
-            $ext = $file->getClientOriginalExtension() ?: 'jpg';
+            $detectedExt = strtolower($file->guessExtension() ?: $file->extension() ?: 'jpg');
+            $allowedExts = ['jpg', 'jpeg', 'png', 'webp'];
+            $ext = in_array($detectedExt, $allowedExts) ? $detectedExt : 'jpg';
             $filename = 'rusak_' . time() . '_' . uniqid() . '.' . $ext;
             $fotoPath = $file->storeAs('uploads/kerusakan', $filename, 'public');
         }

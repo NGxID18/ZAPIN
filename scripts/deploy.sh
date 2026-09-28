@@ -19,6 +19,9 @@ echo "=========================================================="
 
 # 1. Update & Install Paket yang Dibutuhkan
 echo "[1/6] Menginstal paket sistem (Nginx, PostgreSQL, PHP 8.4, Composer)..."
+# Nonaktifkan Apache2 agar tidak menempati port 80
+sudo systemctl disable --now apache2 2>/dev/null || true
+
 sudo apt update
 sudo apt install -y nginx postgresql postgresql-contrib \
     php8.4-fpm php8.4-cli php8.4-pgsql php8.4-mbstring \
@@ -63,9 +66,15 @@ sudo rm -f /etc/nginx/sites-enabled/default
 sudo nginx -t
 
 # 6. Restart Layanan
-echo "[6/6] Memuat ulang service PHP-FPM dan Nginx..."
+echo "[6/7] Memuat ulang service PHP-FPM dan Nginx..."
 sudo systemctl restart php8.4-fpm nginx
 sudo systemctl enable php8.4-fpm nginx
+
+# 7. Pasang Service Otomatis On-Boot
+echo "[7/7] Memasang service auto-deploy saat sistem booting..."
+sudo cp "$PROJECT_DIR/zapin-boot.service" /etc/systemd/system/zapin-boot.service
+sudo systemctl daemon-reload
+sudo systemctl enable zapin-boot.service
 
 echo "=========================================================="
 echo "DEPLOYMENT BERHASIL SELESAI"

@@ -143,7 +143,7 @@ class AlkesController extends Controller
 
         $createdUnits = [];
         DB::transaction(function () use ($validated, $totalUnits, &$createdUnits) {
-            $maxNo = Alkes::max('no_urut') ?? 0;
+            $maxNo = Alkes::withTrashed()->max('no_urut') ?? 0;
             for ($i = 1; $i <= $totalUnits; $i++) {
                 $itemData = $validated;
                 $itemNo = $maxNo + $i;
@@ -161,9 +161,11 @@ class AlkesController extends Controller
             }
         });
 
-        // Sinkronkan setiap unit yang dibuat ke Google Spreadsheet
-        foreach ($createdUnits as $unit) {
-            $syncService->pushUpdateToSheet($unit->fresh());
+        // Sinkronkan unit yang dibuat ke Google Spreadsheet (batch jika lebih dari 1 unit)
+        if (count($createdUnits) > 1) {
+            $syncService->pushBatchUpdateToSheet($createdUnits);
+        } elseif (count($createdUnits) === 1) {
+            $syncService->pushUpdateToSheet($createdUnits[0]->fresh());
         }
 
         $lastUnit = end($createdUnits);

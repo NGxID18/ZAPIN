@@ -17,5 +17,6 @@ Route::get('/ping', function () {
     ]);
 });
 
-Route::post('/sheets/webhook-update', [\App\Http\Controllers\AlkesController::class, 'handleSheetWebhookUpdate']);
+Route::post('/sheets/webhook-update', [\App\Http\Controllers\AlkesController::class, 'handleSheetWebhookUpdate'])
+    ->middleware('throttle:60,1');
 

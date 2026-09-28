@@ -76,7 +76,9 @@ class KalibrasiController extends Controller
 
         if ($request->hasFile('sertifikat_pdf')) {
             $file = $request->file('sertifikat_pdf');
-            $ext = strtolower($file->getClientOriginalExtension() ?: 'pdf');
+            $detectedExt = strtolower($file->guessExtension() ?: $file->extension() ?: 'pdf');
+            $allowedExts = ['pdf', 'jpg', 'jpeg', 'png', 'webp'];
+            $ext = in_array($detectedExt, $allowedExts) ? $detectedExt : 'pdf';
             $cleanName = preg_replace('/[^a-zA-Z0-9_-]/', '_', pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME));
             $fileName = 'sertifikat_' . $alkes->id . '_' . time() . '_' . substr($cleanName, 0, 30) . '.' . $ext;
 

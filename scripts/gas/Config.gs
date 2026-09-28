@@ -2,10 +2,15 @@
  * Konfigurasi dan Pemetaan Kolom ZAPIN Sync.
  */
 
+function getSecretKey() {
+  var prop = PropertiesService.getScriptProperties().getProperty('ZAPIN_SECRET_KEY');
+  return prop || 'zapin_secret_key_rsjko_2026';
+}
+
 var CONFIG = {
   API_URL: 'https://zapin.online/api/sheets/webhook-update',
   PING_URL: 'https://zapin.online/api/ping',
-  SECRET_KEY: 'zapin_secret_key_rsjko_2026',
+  SECRET_KEY: getSecretKey(),
   HEADER_ROW: 8,
   DATA_START_ROW: 10,
   SHEET_NAME: 'Sheet1'

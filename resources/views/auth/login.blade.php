@@ -4,11 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ZAPIN</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tailwind CSS (Offline-first local dengan CDN fallback) -->
+    <script src="{{ asset('vendor/tailwindcss/tailwind.min.js') }}" onerror="this.onerror=null;this.src='https://cdn.tailwindcss.com';"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+    <link href="{{ asset('vendor/remixicon/remixicon.css') }}" rel="stylesheet" onerror="this.onerror=null;this.href='https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css';">
 
     <style>
         body, input, button, select, textarea { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }

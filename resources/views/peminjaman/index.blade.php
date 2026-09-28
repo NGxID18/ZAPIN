@@ -43,8 +43,8 @@
                                 <div class="text-xs text-slate-600">{{ $pinjam->ruanganPeminjam->nama_ruangan ?? '-' }}</div>
                             </td>
                             <td class="py-3.5 px-4 text-xs whitespace-nowrap">
-                                <div><span class="text-slate-500">Pinjam:</span> {{ $pinjam->tanggal_pinjam->format('d M Y, H:i') }}</div>
-                                <div><span class="text-slate-500">Estimasi Kembali:</span> <span class="font-bold text-sky-700">{{ $pinjam->estimasi_kembali->format('d M Y, H:i') }}</span></div>
+                                <div><span class="text-slate-500">Pinjam:</span> {{ $pinjam->tanggal_pinjam ? $pinjam->tanggal_pinjam->format('d M Y, H:i') : '-' }}</div>
+                                <div><span class="text-slate-500">Estimasi Kembali:</span> <span class="font-bold text-sky-700">{{ $pinjam->estimasi_kembali ? $pinjam->estimasi_kembali->format('d M Y, H:i') : '-' }}</span></div>
                             </td>
                             <td class="py-3.5 px-4 text-center">
                                 @if ($pinjam->status === 'Dipinjam')

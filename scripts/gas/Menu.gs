@@ -7,7 +7,21 @@ function onOpen() {
     .addItem('Kirim Baris yang Dipilih', 'syncSelectedRow')
     .addItem('Sinkronkan Penghapusan ke ZAPIN', 'manualReconcile')
     .addItem('Tes Koneksi ke ZAPIN', 'testConnection')
+    .addSeparator()
+    .addItem('Atur Kunci Rahasia (Secret Key)', 'setSecretKeyViaPrompt')
     .addToUi();
+}
+
+function setSecretKeyViaPrompt() {
+  var ui = SpreadsheetApp.getUi();
+  var result = ui.prompt('Konfigurasi Keamanan ZAPIN', 'Masukkan Kunci Rahasia API ZAPIN (ZAPIN_SECRET_KEY):', ui.ButtonSet.OK_CANCEL);
+  if (result.getSelectedButton() == ui.Button.OK) {
+    var key = result.getResponseText().trim();
+    if (key) {
+      PropertiesService.getScriptProperties().setProperty('ZAPIN_SECRET_KEY', key);
+      ui.alert('Sukses', 'Kunci rahasia ZAPIN berhasil disimpan dengan aman di Script Properties.', ui.ButtonSet.OK);
+    }
+  }
 }
 
 function manualReconcile() {
