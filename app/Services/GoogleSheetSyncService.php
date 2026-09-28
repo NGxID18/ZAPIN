@@ -12,7 +12,6 @@ use Illuminate\Support\Facades\Log;
 class GoogleSheetSyncService
 {
     protected string $sheetUrl;
-
     protected array $roomCache = [];
 
     public function __construct(?string $url = null)
@@ -25,6 +24,10 @@ class GoogleSheetSyncService
         $nama = trim($rawNama ?? '');
         if (empty($nama) || $nama === '-') {
             $nama = 'G. Penunjang';
+        }
+
+        if (strcasecmp($nama, 'Labolatorium') === 0) {
+            $nama = 'Laboratorium';
         }
 
         $key = strtolower($nama);
@@ -52,12 +55,37 @@ class GoogleSheetSyncService
         return $ruangan->id;
     }
 
+    public function resolveLokasiRuanganId(?string $rawLokasi, int $fallbackRuanganId): int
+    {
+        $lokasi = trim($rawLokasi ?? '');
+        if (empty($lokasi) || $lokasi === '-') {
+            return $fallbackRuanganId;
+        }
+
+        if (strcasecmp($lokasi, 'Labolatorium') === 0) {
+            $lokasi = 'Laboratorium';
+        }
+
+        $key = strtolower($lokasi);
+        if (isset($this->roomCache[$key])) {
+            return $this->roomCache[$key];
+        }
+
+        $ruangan = Ruangan::whereRaw('LOWER(nama_ruangan) = ?', [$key])->first();
+        if ($ruangan) {
+            $this->roomCache[$key] = $ruangan->id;
+            return $ruangan->id;
+        }
+
+        return $fallbackRuanganId;
+    }
+
     public function sync(): array
     {
         $csvContent = $this->fetchCsv();
 
         if (empty($csvContent)) {
-            throw new \RuntimeException('Gagal mengunduh data CSV dari Google Spreadsheet. Pastikan tautan spreadsheet bersifat publik (view access).');
+            throw new \RuntimeException('Gagal mengunduh data CSV dari Google Spreadsheet. Pastikan tautan spreadsheet bersifat publik.');
         }
 
         $stream = fopen('php://temp', 'r+');
@@ -67,10 +95,10 @@ class GoogleSheetSyncService
         $created = 0;
         $updated = 0;
         $totalProcessed = 0;
+        $matchedIds = [];
 
         try {
-            DB::transaction(function () use ($stream, &$created, &$updated, &$totalProcessed) {
-                $header = null;
+            DB::transaction(function () use ($stream, &$created, &$updated, &$totalProcessed, &$matchedIds) {
                 $lineIndex = 0;
 
                 while (($row = fgetcsv($stream)) !== false) {
@@ -79,7 +107,6 @@ class GoogleSheetSyncService
                     }
 
                     if ($lineIndex === 0) {
-                        $header = $row;
                         $lineIndex++;
                         continue;
                     }
@@ -89,115 +116,104 @@ class GoogleSheetSyncService
                         continue;
                     }
 
-                // Berdasarkan indeks kolom hasil audit profiling:
-                // Col 1: No.
-                // Col 2: Nama Barang
-                // Col 3: Merk
-                // Col 4: Tipe
-                // Col 5: Serial Number
-                // Col 6: Tahun
-                // Col 7: Jumlah
-                // Col 8: Cara Perolehan
-                // Col 9: Nilai Perolehan
-                // Col 10: Distributor
-                // Col 11: Ruangan
-                // Col 12: Lokasi Saat Ini
-                // Col 13: Kondisi Alat
-                // Col 14: ASPAK
-                // Col 15: KIB
-                // Col 16: NON KIB dan ASPAK
-                // Col 17: AKL/AKD
-                // Col 18: KETERANGAN
+                    $noRaw = trim($row[1] ?? '');
+                    $namaBarang = trim($row[2] ?? '');
+                    $merk = trim($row[3] ?? '') ?: null;
+                    $tipe = trim($row[4] ?? '') ?: null;
+                    $sn = trim($row[5] ?? '') ?: null;
+                    $tahun = trim($row[6] ?? '') ?: null;
+                    $caraPerolehan = trim($row[8] ?? '') ?: null;
+                    $nilaiPerolehan = trim($row[9] ?? '') ?: null;
+                    $distributor = trim($row[10] ?? '') ?: null;
+                    $ruanganNama = trim($row[11] ?? '');
+                    $lokasiSaatIniNote = trim($row[12] ?? '') ?: null;
+                    $kondisiRaw = trim($row[13] ?? '');
+                    $aspak = trim($row[14] ?? '') ?: null;
+                    $kib = trim($row[15] ?? '') ?: null;
+                    $nonKib = trim($row[16] ?? '') ?: null;
+                    $aklAkd = trim($row[17] ?? '') ?: null;
+                    $keterangan = trim($row[18] ?? '') ?: null;
 
-                $noRaw = trim($row[1] ?? '');
-                $namaBarang = trim($row[2] ?? '');
-
-                if (empty($namaBarang)) {
-                    continue;
-                }
-
-                $noUrut = is_numeric($noRaw) ? (int) $noRaw : null;
-                $merk = trim($row[3] ?? '') ?: null;
-                $tipe = trim($row[4] ?? '') ?: null;
-                $sn = trim($row[5] ?? '') ?: null;
-                $tahun = trim($row[6] ?? '') ?: null;
-                $jumlahRaw = trim($row[7] ?? '');
-                $jumlah = is_numeric($jumlahRaw) ? (int) $jumlahRaw : 1;
-                $caraPerolehan = trim($row[8] ?? '') ?: null;
-                $nilaiPerolehan = trim($row[9] ?? '') ?: null;
-                $distributor = trim($row[10] ?? '') ?: null;
-                $ruanganNama = trim($row[11] ?? '');
-                $lokasiSaatIniNote = trim($row[12] ?? '') ?: null;
-                $kondisiRaw = trim($row[13] ?? '');
-                $aspak = trim($row[14] ?? '') ?: null;
-                $kib = trim($row[15] ?? '') ?: null;
-                $nonKib = trim($row[16] ?? '') ?: null;
-                $aklAkd = trim($row[17] ?? '') ?: null;
-                $keterangan = trim($row[18] ?? '') ?: null;
-
-                // Tentukan kondisi persis (zero fake data: jika kosong, simpan null)
-                $kondisi = !empty($kondisiRaw) ? strtoupper($kondisiRaw) : null;
-
-                // Tentukan status operasional
-                $status = 'Tersedia';
-                if ($kondisi && str_contains($kondisi, 'RUSAK')) {
-                    $status = 'Dalam Perbaikan';
-                }
-
-                $ruanganId = $this->getOrCreateRuanganId($ruanganNama);
-
-                // Cari record alkes yang cocok: prioritas utama berdasarkan no_urut spreadsheet (1..638)
-                $alkes = null;
-                if ($noUrut !== null) {
-                    $alkes = Alkes::withTrashed()->where('no_urut', $noUrut)->first();
-                    if ($alkes && $alkes->trashed()) {
-                        $alkes->restore();
+                    if (empty($namaBarang)) {
+                        if (!empty($merk)) {
+                            $namaBarang = (strcasecmp($merk, 'Ambu') === 0) ? 'Ambu Bag' : $merk;
+                        } else {
+                            continue;
+                        }
                     }
+
+                    $noUrut = is_numeric($noRaw) ? (int) $noRaw : null;
+                    $jumlah = 1;
+
+                    $kondisi = !empty($kondisiRaw) ? strtoupper($kondisiRaw) : null;
+                    $status = ($kondisi && str_contains($kondisi, 'RUSAK')) ? 'Dalam Perbaikan' : 'Tersedia';
+
+                    $ruanganId = $this->getOrCreateRuanganId($ruanganNama);
+                    $lokasiRuanganId = $this->resolveLokasiRuanganId($lokasiSaatIniNote, $ruanganId);
+
+                    $alkes = null;
+                    if ($noUrut !== null) {
+                        $candidates = Alkes::withTrashed()
+                            ->where('no_urut', $noUrut)
+                            ->whereNotIn('id', $matchedIds)
+                            ->get();
+
+                        if ($candidates->count() > 1) {
+                            $alkes = $candidates->firstWhere('nama_barang', $namaBarang) ?? $candidates->first();
+                        } else {
+                            $alkes = $candidates->first();
+                        }
+
+                        if ($alkes && $alkes->trashed()) {
+                            $alkes->restore();
+                        }
+                    }
+
+                    $dataPayload = [
+                        'no_urut' => $noUrut,
+                        'nama_barang' => $namaBarang,
+                        'merk' => $merk,
+                        'tipe' => $tipe,
+                        'nomor_seri' => $sn,
+                        'tahun' => $tahun,
+                        'jumlah' => $jumlah,
+                        'cara_perolehan' => $caraPerolehan,
+                        'nilai_perolehan' => $nilaiPerolehan,
+                        'distributor' => $distributor,
+                        'ruangan_id' => $ruanganId,
+                        'lokasi_ruangan_id' => $lokasiRuanganId,
+                        'lokasi_saat_ini_note' => $lokasiSaatIniNote,
+                        'kondisi' => $kondisi,
+                        'status' => $status,
+                        'aspak' => $aspak,
+                        'kib' => $kib,
+                        'non_kib_dan_aspak' => $nonKib,
+                        'akl_akd' => $aklAkd,
+                        'keterangan' => $keterangan,
+                    ];
+
+                    if ($alkes) {
+                        $matchedIds[] = $alkes->id;
+                        $alkes->update($dataPayload);
+                        $updated++;
+                    } else {
+                        $dataPayload['kode_inventaris'] = sprintf('ALT-%s-%04d', $tahun ?: date('Y'), $noUrut ?: ($totalProcessed + 1));
+                        $dataPayload['status_kalibrasi'] = 'BELUM DIKALIBRASI';
+                        $newAlkes = Alkes::create($dataPayload);
+                        $matchedIds[] = $newAlkes->id;
+                        $created++;
+                    }
+
+                    $totalProcessed++;
                 }
 
-                $dataPayload = [
-                    'no_urut' => $noUrut,
-                    'nama_barang' => $namaBarang,
-                    'merk' => $merk,
-                    'tipe' => $tipe,
-                    'nomor_seri' => $sn,
-                    'tahun' => $tahun,
-                    'jumlah' => $jumlah,
-                    'cara_perolehan' => $caraPerolehan,
-                    'nilai_perolehan' => $nilaiPerolehan,
-                    'distributor' => $distributor,
-                    'ruangan_id' => $ruanganId,
-                    'lokasi_ruangan_id' => $ruanganId,
-                    'lokasi_saat_ini_note' => $lokasiSaatIniNote,
-                    'kondisi' => $kondisi,
-                    'status' => $status,
-                    'aspak' => $aspak,
-                    'kib' => $kib,
-                    'non_kib_dan_aspak' => $nonKib,
-                    'akl_akd' => $aklAkd,
-                    'keterangan' => $keterangan,
-                ];
-
-                if ($alkes) {
-                    $alkes->update($dataPayload);
-                    $updated++;
-                } else {
-                    $dataPayload['kode_inventaris'] = sprintf('ALT-%s-%04d', $tahun ?: date('Y'), $noUrut ?: ($totalProcessed + 1));
-                    $dataPayload['status_kalibrasi'] = 'BELUM DIKALIBRASI';
-                    Alkes::create($dataPayload);
-                    $created++;
-                }
-
-                $totalProcessed++;
-            }
-
-            ActivityLog::record(
-                'Sinkronisasi Google Sheets',
-                "Sinkronisasi berhasil: {$created} data baru ditambahkan, {$updated} data diperbarui.",
-                'Pusat Data RS',
-                'Sistem Hybrid'
-            );
-        });
+                ActivityLog::record(
+                    'Sinkronisasi Google Sheets',
+                    "Sinkronisasi berhasil: {$created} data baru ditambahkan, {$updated} data diperbarui.",
+                    'Pusat Data RS',
+                    'Sistem Hybrid'
+                );
+            });
         } finally {
             if (is_resource($stream)) {
                 fclose($stream);
@@ -214,7 +230,6 @@ class GoogleSheetSyncService
 
     protected function fetchCsv(): string
     {
-        // Ekstrak ID spreadsheet
         preg_match('/\/d\/([a-zA-Z0-9-_]+)/', $this->sheetUrl, $matches);
         $sheetId = $matches[1] ?? '1LYrKBO_x7YQmFJ6hS0cbXxvith4z-7vWPBsZ-253_Qo';
 
@@ -240,9 +255,6 @@ class GoogleSheetSyncService
         return '';
     }
 
-    /**
-     * Format payload alkes yang konsisten untuk dikirim ke Google Spreadsheet.
-     */
     public function formatAlkesPayload(Alkes $alkes): array
     {
         $rawKib = strtoupper(trim((string)($alkes->kib ?? '')));
@@ -273,14 +285,10 @@ class GoogleSheetSyncService
         ];
     }
 
-    /**
-     * Push pembaruan data alkes dari ZAPIN ke Google Spreadsheet melalui Apps Script Webhook.
-     */
     public function pushUpdateToSheet(Alkes $alkes): array
     {
         $webhookUrl = config('zapin.sheet_webhook_url');
         if (empty($webhookUrl)) {
-            Log::info("Google Sheet Webhook URL belum diatur (GOOGLE_SHEET_WEBHOOK_URL). Lewati pengiriman ke spreadsheet.");
             return [
                 'success' => false,
                 'message' => 'GOOGLE_SHEET_WEBHOOK_URL belum dikonfigurasi di .env',
@@ -302,20 +310,17 @@ class GoogleSheetSyncService
                 ->post($webhookUrl, $payload);
 
             if ($response->successful()) {
-                Log::info("Push data alkes #{$alkes->no_urut} ({$alkes->nama_barang}) ke Google Sheet berhasil.");
                 return [
                     'success' => true,
                     'data' => $response->json(),
                 ];
             }
 
-            Log::warning("Push ke Google Sheet mengembalikan HTTP {$response->status()}: " . $response->body());
             return [
                 'success' => false,
                 'message' => "HTTP {$response->status()}: " . $response->body(),
             ];
         } catch (\Throwable $e) {
-            Log::warning("Gagal mengirim update ke Google Sheet: " . $e->getMessage());
             return [
                 'success' => false,
                 'message' => $e->getMessage(),
@@ -323,14 +328,10 @@ class GoogleSheetSyncService
         }
     }
 
-    /**
-     * Push sekumpulan data alkes (batch) sekaligus ke Google Spreadsheet via satu kali HTTP request.
-     */
     public function pushBatchUpdateToSheet(array $alkesList): array
     {
         $webhookUrl = config('zapin.sheet_webhook_url');
         if (empty($webhookUrl)) {
-            Log::info("Google Sheet Webhook URL belum diatur. Lewati pengiriman batch ke spreadsheet.");
             return [
                 'success' => false,
                 'message' => 'GOOGLE_SHEET_WEBHOOK_URL belum dikonfigurasi di .env',
@@ -363,20 +364,17 @@ class GoogleSheetSyncService
                 ->post($webhookUrl, $payload);
 
             if ($response->successful()) {
-                Log::info("Push batch " . count($items) . " unit alkes ke Google Sheet berhasil.");
                 return [
                     'success' => true,
                     'data' => $response->json(),
                 ];
             }
 
-            Log::warning("Push batch ke Google Sheet HTTP {$response->status()}: " . $response->body());
             return [
                 'success' => false,
                 'message' => "HTTP {$response->status()}: " . $response->body(),
             ];
         } catch (\Throwable $e) {
-            Log::warning("Gagal mengirim batch update ke Google Sheet: " . $e->getMessage());
             return [
                 'success' => false,
                 'message' => $e->getMessage(),
@@ -384,9 +382,6 @@ class GoogleSheetSyncService
         }
     }
 
-    /**
-     * Menerima pembaruan data dari Google Spreadsheet via Webhook dan menyimpannya ke PostgreSQL secara atomik.
-     */
     public function updateFromSheetWebhook(array $payload): array
     {
         $data = $payload['data'] ?? $payload;
@@ -421,7 +416,7 @@ class GoogleSheetSyncService
             $updateFields['tahun'] = trim((string)$data['tahun']) ?: null;
         }
         if (array_key_exists('jumlah', $data)) {
-            $updateFields['jumlah'] = is_numeric($data['jumlah']) ? (int) $data['jumlah'] : 1;
+            $updateFields['jumlah'] = 1;
         }
         if (array_key_exists('cara_perolehan', $data)) {
             $updateFields['cara_perolehan'] = trim((string)$data['cara_perolehan']) ?: null;
@@ -444,10 +439,10 @@ class GoogleSheetSyncService
         }
         if (array_key_exists('lokasi_saat_ini', $data)) {
             $lokasiRaw = trim((string)$data['lokasi_saat_ini']);
+            $updateFields['lokasi_saat_ini_note'] = $lokasiRaw ?: null;
             if (!empty($lokasiRaw)) {
-                $lokasiId = $this->getOrCreateRuanganId($lokasiRaw);
-                $updateFields['lokasi_ruangan_id'] = $lokasiId;
-                $updateFields['lokasi_saat_ini_note'] = $lokasiRaw;
+                $currentRuanganId = $updateFields['ruangan_id'] ?? ($alkes ? $alkes->ruangan_id : $this->getOrCreateRuanganId('G. Penunjang'));
+                $updateFields['lokasi_ruangan_id'] = $this->resolveLokasiRuanganId($lokasiRaw, $currentRuanganId);
             }
         }
         if (array_key_exists('kondisi', $data)) {
@@ -526,14 +521,10 @@ class GoogleSheetSyncService
         }
     }
 
-    /**
-     * Push perintah hapus baris alkes ke Google Spreadsheet melalui Apps Script Webhook.
-     */
     public function pushDeleteToSheet(int $noUrut): array
     {
         $webhookUrl = config('zapin.sheet_webhook_url');
         if (empty($webhookUrl)) {
-            Log::info("Google Sheet Webhook URL belum diatur. Lewati penghapusan baris di spreadsheet.");
             return [
                 'success' => false,
                 'message' => 'GOOGLE_SHEET_WEBHOOK_URL belum dikonfigurasi di .env',
@@ -553,20 +544,17 @@ class GoogleSheetSyncService
                 ]);
 
             if ($response->successful()) {
-                Log::info("Push hapus alkes #{$noUrut} ke Google Sheet berhasil.");
                 return [
                     'success' => true,
                     'data' => $response->json(),
                 ];
             }
 
-            Log::warning("Push hapus ke Google Sheet mengembalikan HTTP {$response->status()}: " . $response->body());
             return [
                 'success' => false,
                 'message' => "HTTP {$response->status()}: " . $response->body(),
             ];
         } catch (\Throwable $e) {
-            Log::warning("Gagal menghapus baris di Google Sheet: " . $e->getMessage());
             return [
                 'success' => false,
                 'message' => $e->getMessage(),
@@ -574,10 +562,6 @@ class GoogleSheetSyncService
         }
     }
 
-    /**
-     * Menyelaraskan alkes di database dengan daftar no_urut aktif dari Google Spreadsheet.
-     * Alkes di database yang sudah tidak ada di spreadsheet akan dihapus.
-     */
     public function reconcileActiveRows(array $activeNoUruts): array
     {
         if (empty($activeNoUruts)) {
@@ -587,7 +571,6 @@ class GoogleSheetSyncService
             ];
         }
 
-        // Pengaman: Jangan hapus jika data spreadsheet yang dikirim terlalu sedikit dibanding database
         $dbCount = Alkes::count();
         if (count($activeNoUruts) < 100 && $dbCount > 200) {
             return [

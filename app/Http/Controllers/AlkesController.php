@@ -17,7 +17,6 @@ class AlkesController extends Controller
     {
         $query = Alkes::with(['ruangan', 'lokasiRuangan'])->accessibleByCurrentRole();
 
-        // Pencarian multi-kolom
         if ($request->filled('search')) {
             $s = trim($request->search);
             $query->where(function ($q) use ($s) {
@@ -34,17 +33,14 @@ class AlkesController extends Controller
             });
         }
 
-        // Filter ruangan pemilik
         if ($request->filled('ruangan_id')) {
             $query->where('ruangan_id', $request->ruangan_id);
         }
 
-        // Filter lokasi ruangan aktual
         if ($request->filled('lokasi_ruangan_id')) {
             $query->where('lokasi_ruangan_id', $request->lokasi_ruangan_id);
         }
 
-        // Filter kondisi
         if ($request->filled('kondisi')) {
             $val = trim($request->kondisi);
             if ($val === '-') {
@@ -54,7 +50,6 @@ class AlkesController extends Controller
             }
         }
 
-        // Pengurutan
         $sortBy = $request->input('sort_by', 'no_urut');
         $sortDir = strtolower($request->input('sort_dir', 'asc')) === 'desc' ? 'desc' : 'asc';
 
@@ -99,12 +94,11 @@ class AlkesController extends Controller
 
     public function create()
     {
-        $nomenklaturList = collect([]);
         $ruanganList = Ruangan::orderBy('nama_ruangan', 'asc')->get();
         $kondisis = $this->getKondisiOptions(false);
         $statuses = $this->getStatusOptions();
 
-        return view('alkes.create', compact('nomenklaturList', 'ruanganList', 'kondisis', 'statuses'));
+        return view('alkes.create', compact('ruanganList', 'kondisis', 'statuses'));
     }
 
     public function store(Request $request, GoogleSheetSyncService $syncService)
@@ -161,7 +155,6 @@ class AlkesController extends Controller
             }
         });
 
-        // Sinkronkan unit yang dibuat ke Google Spreadsheet (batch jika lebih dari 1 unit)
         if (count($createdUnits) > 1) {
             $syncService->pushBatchUpdateToSheet($createdUnits);
         } elseif (count($createdUnits) === 1) {
@@ -191,13 +184,11 @@ class AlkesController extends Controller
                 ->with('error', 'Akses Ditolak: Anda hanya memiliki hak kendali atas alat kesehatan milik ruangan Anda.');
         }
 
-        $nomenklaturList = collect([]);
         $ruanganList = Ruangan::orderBy('nama_ruangan', 'asc')->get();
-
         $kondisis = $this->getKondisiOptions(false);
         $statuses = $this->getStatusOptions();
 
-        return view('alkes.edit', compact('alkes', 'nomenklaturList', 'ruanganList', 'kondisis', 'statuses'));
+        return view('alkes.edit', compact('alkes', 'ruanganList', 'kondisis', 'statuses'));
     }
 
     public function update(Request $request, $id, GoogleSheetSyncService $syncService)
@@ -242,7 +233,6 @@ class AlkesController extends Controller
 
         ActivityLog::record('Update Alkes', "Pembaruan informasi data alkes '{$alkes->nama_barang}'.", $alkes->ruangan->nama_ruangan ?? null);
 
-        // Otomatis sinkronkan ke Google Spreadsheet via Apps Script Webhook
         $syncResult = $syncService->pushUpdateToSheet($alkes->fresh());
         $message = "Data alkes '{$alkes->nama_barang}' berhasil diperbarui.";
         if (!empty($syncResult['success'])) {
@@ -252,9 +242,6 @@ class AlkesController extends Controller
         return redirect()->route('alkes.show', $alkes->id)->with('success', $message);
     }
 
-    /**
-     * Endpoint API Webhook untuk menerima perubahan langsung dari Google Spreadsheet
-     */
     public function handleSheetWebhookUpdate(Request $request, GoogleSheetSyncService $syncService)
     {
         $incomingSecret = (string) ($request->header('X-Zapin-Secret') ?? $request->input('secret') ?? '');
@@ -306,7 +293,6 @@ class AlkesController extends Controller
 
         ActivityLog::record('Hapus Alkes', "Penghapusan data alkes '{$nama}' (No: {$noUrut}).");
 
-        // Otomatis hapus baris di Google Spreadsheet
         if ($noUrut) {
             $syncService->pushDeleteToSheet($noUrut);
         }
