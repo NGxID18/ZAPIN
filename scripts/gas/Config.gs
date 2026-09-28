@@ -11,8 +11,8 @@ var CONFIG = {
   API_URL: 'https://zapin.online/api/sheets/webhook-update',
   PING_URL: 'https://zapin.online/api/ping',
   SECRET_KEY: getSecretKey(),
-  HEADER_ROW: 8,
-  DATA_START_ROW: 10,
+  HEADER_ROW: 1,
+  DATA_START_ROW: 2,
   SHEET_NAME: 'Sheet1'
 };
 

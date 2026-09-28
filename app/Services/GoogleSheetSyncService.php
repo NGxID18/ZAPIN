@@ -138,7 +138,7 @@ class GoogleSheetSyncService
                         continue;
                     }
 
-                    $noUrut = is_numeric($noRaw) ? (int) $noRaw : null;
+                    $seqNo = $totalProcessed + 1;
                     $jumlah = 1;
 
                     $kondisi = !empty($kondisiRaw) ? strtoupper($kondisiRaw) : null;
@@ -147,26 +147,20 @@ class GoogleSheetSyncService
                     $ruanganId = $this->getOrCreateRuanganId($ruanganNama);
                     $lokasiRuanganId = $this->resolveLokasiRuanganId($lokasiSaatIniNote, $ruanganId);
 
-                    $alkes = null;
-                    if ($noUrut !== null) {
-                        $candidates = Alkes::withTrashed()
-                            ->where('no_urut', $noUrut)
+                    $alkes = Alkes::withTrashed()->where('no_urut', $seqNo)->first();
+                    if (!$alkes && is_numeric($noRaw)) {
+                        $alkes = Alkes::withTrashed()
+                            ->where('no_urut', (int) $noRaw)
                             ->whereNotIn('id', $matchedIds)
-                            ->get();
+                            ->first();
+                    }
 
-                        if ($candidates->count() > 1) {
-                            $alkes = $candidates->firstWhere('nama_barang', $namaBarang) ?? $candidates->first();
-                        } else {
-                            $alkes = $candidates->first();
-                        }
-
-                        if ($alkes && $alkes->trashed()) {
-                            $alkes->restore();
-                        }
+                    if ($alkes && $alkes->trashed()) {
+                        $alkes->restore();
                     }
 
                     $dataPayload = [
-                        'no_urut' => $noUrut,
+                        'no_urut' => $seqNo,
                         'nama_barang' => $namaBarang,
                         'merk' => $merk,
                         'tipe' => $tipe,
@@ -193,7 +187,7 @@ class GoogleSheetSyncService
                         $alkes->update($dataPayload);
                         $updated++;
                     } else {
-                        $dataPayload['kode_inventaris'] = sprintf('ALT-%s-%04d', $tahun ?: date('Y'), $noUrut ?: ($totalProcessed + 1));
+                        $dataPayload['kode_inventaris'] = sprintf('ALT-%s-%04d', $tahun ?: date('Y'), $seqNo);
                         $dataPayload['status_kalibrasi'] = 'BELUM DIKALIBRASI';
                         $newAlkes = Alkes::create($dataPayload);
                         $matchedIds[] = $newAlkes->id;

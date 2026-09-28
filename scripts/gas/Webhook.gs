@@ -58,6 +58,27 @@ function doPost(e) {
       });
     }
 
+    // Aksi menata ulang seluruh nomor urut dari 1 sampai akhir baris
+    if (json.action === 'renumber_all_rows') {
+      var numRows = lastRow - CONFIG.DATA_START_ROW + 1;
+      if (numRows > 0) {
+        var numbers = [];
+        for (var n = 1; n <= numRows; n++) {
+          numbers.push([n]);
+        }
+        PropertiesService.getScriptProperties().setProperty('IS_SYNCING', 'true');
+        sheet.getRange(CONFIG.DATA_START_ROW, COLUMN_MAP.no_urut, numRows, 1).setValues(numbers);
+        SpreadsheetApp.flush();
+        PropertiesService.getScriptProperties().deleteProperty('IS_SYNCING');
+        return jsonResponse({
+          status: 'success',
+          message: 'Nomor urut kolom B berhasil diperbaiki berurutan dari 1 s/d ' + numRows + '.',
+          total: numRows
+        });
+      }
+      return jsonResponse({ status: 'error', message: 'Tidak ada baris data untuk diperbaiki.' });
+    }
+
     var alkesData = json.data || json;
     var targetNoUrut = parseInt(alkesData.no_urut, 10);
     if (isNaN(targetNoUrut)) {

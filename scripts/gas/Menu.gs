@@ -4,12 +4,39 @@
 
 function onOpen() {
   SpreadsheetApp.getUi().createMenu('ZAPIN')
+    .addItem('Perbaiki Nomor Urut Otomatis (1 s/d Akhir)', 'perbaikiNomorUrutOtomatis')
     .addItem('Kirim Baris yang Dipilih', 'syncSelectedRow')
     .addItem('Sinkronkan Penghapusan ke ZAPIN', 'manualReconcile')
     .addItem('Tes Koneksi ke ZAPIN', 'testConnection')
     .addSeparator()
     .addItem('Atur Kunci Rahasia (Secret Key)', 'setSecretKeyViaPrompt')
     .addToUi();
+}
+
+function perbaikiNomorUrutOtomatis() {
+  var ui = SpreadsheetApp.getUi();
+  var sheet = getTargetSheet();
+  var lastRow = sheet.getLastRow();
+  if (lastRow < CONFIG.DATA_START_ROW) {
+    ui.alert('Peringatan', 'Tidak ada data alkes untuk diperbaiki.', ui.ButtonSet.OK);
+    return;
+  }
+  
+  var numRows = lastRow - CONFIG.DATA_START_ROW + 1;
+  var confirm = ui.alert('Konfirmasi', 'Apakah Anda ingin menata ulang seluruh nomor urut (kolom No.) dari 1 sampai ' + numRows + ' secara berurutan?', ui.ButtonSet.YES_NO);
+  if (confirm !== ui.Button.YES) return;
+
+  var numbers = [];
+  for (var i = 1; i <= numRows; i++) {
+    numbers.push([i]);
+  }
+  
+  PropertiesService.getScriptProperties().setProperty('IS_SYNCING', 'true');
+  sheet.getRange(CONFIG.DATA_START_ROW, COLUMN_MAP.no_urut, numRows, 1).setValues(numbers);
+  SpreadsheetApp.flush();
+  PropertiesService.getScriptProperties().deleteProperty('IS_SYNCING');
+  
+  ui.alert('Sukses', 'Nomor urut kolom B berhasil diperbaiki secara otomatis menjadi 1 s/d ' + numRows + '.', ui.ButtonSet.OK);
 }
 
 function setSecretKeyViaPrompt() {
