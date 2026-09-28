@@ -134,12 +134,8 @@ class GoogleSheetSyncService
                     $aklAkd = trim($row[17] ?? '') ?: null;
                     $keterangan = trim($row[18] ?? '') ?: null;
 
-                    if (empty($namaBarang)) {
-                        if (!empty($merk)) {
-                            $namaBarang = (strcasecmp($merk, 'Ambu') === 0) ? 'Ambu Bag' : $merk;
-                        } else {
-                            continue;
-                        }
+                    if ($noRaw === '' && $namaBarang === '') {
+                        continue;
                     }
 
                     $noUrut = is_numeric($noRaw) ? (int) $noRaw : null;
