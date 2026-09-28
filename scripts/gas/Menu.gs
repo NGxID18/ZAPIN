@@ -32,6 +32,9 @@ function perbaikiNomorUrutOtomatis() {
   }
   
   PropertiesService.getScriptProperties().setProperty('IS_SYNCING', 'true');
+  if (CONFIG.DATA_START_ROW > 2) {
+    sheet.getRange(2, COLUMN_MAP.no_urut, CONFIG.DATA_START_ROW - 2, 1).clearContent();
+  }
   sheet.getRange(CONFIG.DATA_START_ROW, COLUMN_MAP.no_urut, numRows, 1).setValues(numbers);
   SpreadsheetApp.flush();
   PropertiesService.getScriptProperties().deleteProperty('IS_SYNCING');

@@ -134,7 +134,11 @@ class GoogleSheetSyncService
                     $aklAkd = trim($row[17] ?? '') ?: null;
                     $keterangan = trim($row[18] ?? '') ?: null;
 
-                    if ($noRaw === '' && $namaBarang === '') {
+                    if (empty($namaBarang) && empty($ruanganNama)) {
+                        continue;
+                    }
+
+                    if ($namaBarang === 'Nama Barang' || $ruanganNama === 'Ruangan') {
                         continue;
                     }
 
