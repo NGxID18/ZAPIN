@@ -48,6 +48,83 @@ class AlkesWorkflowTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertSee('Inventaris Alkes');
+
+        // Verify all 17 spreadsheet columns appear in the table
+        $response->assertSee('No.');
+        $response->assertSee('Nama Barang');
+        $response->assertSee('Merk');
+        $response->assertSee('Tipe');
+        $response->assertSee('Serial Number');
+        $response->assertSee('Tahun');
+        $response->assertSee('Cara Perolehan');
+        $response->assertSee('Nilai Perolehan');
+        $response->assertSee('Distributor');
+        $response->assertSee('Ruangan');
+        $response->assertSee('Lokasi Saat Ini');
+        $response->assertSee('Kondisi Alat');
+        $response->assertSee('ASPAK');
+        $response->assertSee('KIB');
+        $response->assertSee('NON KIB dan ASPAK');
+        $response->assertSee('AKL/AKD');
+        $response->assertSee('Keterangan');
+    }
+
+    public function test_alkes_show_displays_all_spreadsheet_columns(): void
+    {
+        $alkes = \App\Models\Alkes::first();
+        if (!$alkes) {
+            $this->markTestSkipped('No alkes record found.');
+        }
+
+        $response = $this->withSession([
+            'user_role' => 'elektromedis',
+            'user_role_label' => 'Instalasi Elektromedis',
+        ])->get('/alkes/' . $alkes->id);
+
+        $response->assertStatus(200);
+        $response->assertSee('No. Urut');
+        $response->assertSee('Nama Barang');
+        $response->assertSee('Merk / Produsen');
+        $response->assertSee('Model / Tipe');
+        $response->assertSee('Nomor Seri');
+        $response->assertSee('Tahun');
+        $response->assertSee('Cara Perolehan');
+        $response->assertSee('Nilai Perolehan');
+        $response->assertSee('Distributor');
+        $response->assertSee('Status ASPAK');
+        $response->assertSee('Status KIB');
+        $response->assertSee('NON KIB dan ASPAK');
+        $response->assertSee('Izin Edar (AKL / AKD)');
+        $response->assertSee('Keterangan / Catatan Inventaris');
+    }
+
+    public function test_alkes_create_and_edit_contains_all_spreadsheet_fields(): void
+    {
+        $alkes = \App\Models\Alkes::first();
+
+        $createRes = $this->withSession([
+            'user_role' => 'elektromedis',
+        ])->get('/alkes/create');
+
+        $createRes->assertStatus(200);
+        $createRes->assertSee('name="cara_perolehan"', false);
+        $createRes->assertSee('name="nilai_perolehan"', false);
+        $createRes->assertSee('name="distributor"', false);
+        $createRes->assertSee('name="non_kib_dan_aspak"', false);
+        $createRes->assertSee('name="akl_akd"', false);
+
+        if ($alkes) {
+            $editRes = $this->withSession([
+                'user_role' => 'elektromedis',
+            ])->get('/alkes/' . $alkes->id . '/edit');
+
+            $editRes->assertStatus(200);
+            $editRes->assertSee('name="cara_perolehan"', false);
+            $editRes->assertSee('name="nilai_perolehan"', false);
+            $editRes->assertSee('name="distributor"', false);
+            $editRes->assertSee('name="non_kib_dan_aspak"', false);
+            $editRes->assertSee('name="akl_akd"', false);
+        }
     }
 
     public function test_peminjaman_index_accessible(): void

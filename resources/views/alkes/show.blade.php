@@ -45,82 +45,158 @@
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
 
-        <div class="lg:col-span-2 bg-white rounded-xl border border-slate-200 p-5 space-y-5">
-            <h4 class="font-semibold text-sm text-slate-800 pb-3 border-b border-slate-100 flex items-center gap-2">
-                <i class="ri-information-line text-indigo-500"></i>
-                Informasi & Spesifikasi
-            </h4>
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div class="p-3 bg-slate-50 rounded-lg border border-slate-100">
-                    <span class="text-[10px] text-slate-400 font-medium uppercase block">Nama Barang</span>
-                    <span class="font-semibold text-slate-900 text-sm mt-0.5 block">{{ $alkes->nama_barang }}</span>
-                </div>
-
-                <div class="p-3 bg-slate-50 rounded-lg border border-slate-100">
-                    <span class="text-[10px] text-slate-400 font-medium uppercase block">Merk / Produsen</span>
-                    <span class="font-semibold text-slate-800 text-sm mt-0.5 block">{{ $alkes->merk ?? '-' }}</span>
-                </div>
-
-                <div class="p-3 bg-slate-50 rounded-lg border border-slate-100">
-                    <span class="text-[10px] text-slate-400 font-medium uppercase block">Model / Tipe</span>
-                    <span class="font-medium text-slate-700 text-sm mt-0.5 block">{{ $alkes->tipe ?? '-' }}</span>
-                </div>
-
-                <div class="p-3 bg-slate-50 rounded-lg border border-slate-100">
-                    <span class="text-[10px] text-slate-400 font-medium uppercase block">Nomor Seri (SN)</span>
-                    <span class="font-mono font-semibold text-slate-900 text-sm mt-0.5 block">{{ $alkes->nomor_seri ?? '-' }}</span>
-                </div>
-
-                <div class="p-3 bg-slate-50 rounded-lg border border-slate-100">
-                    <span class="text-[10px] text-slate-400 font-medium uppercase block">Status Kalibrasi</span>
-                    <span class="font-bold text-sm mt-0.5 block {{ $alkes->status_kalibrasi === 'SUDAH DIKALIBRASI' ? 'text-emerald-700' : 'text-slate-700' }}">
-                        {{ $alkes->status_kalibrasi ?: 'BELUM DIKALIBRASI' }}
+        <div class="lg:col-span-2 space-y-5">
+            <div class="bg-white rounded-2xl border border-slate-200 p-6 space-y-5 shadow-sm">
+                <h4 class="font-black text-sm text-slate-900 pb-3 border-b border-slate-100 flex items-center justify-between">
+                    <span class="flex items-center gap-2">
+                        <i class="ri-stethoscope-line text-emerald-600 text-lg"></i>
+                        Identitas & Spesifikasi Alat
                     </span>
-                </div>
-
-                <div class="p-3 bg-slate-50 rounded-lg border border-slate-100">
-                    <span class="text-[10px] text-slate-400 font-medium uppercase block">Tanggal Kalibrasi Terakhir</span>
-                    <span class="font-medium text-slate-700 text-sm mt-0.5 block">
-                        {{ $alkes->tanggal_kalibrasi_terakhir ? $alkes->tanggal_kalibrasi_terakhir->format('d/m/Y') : 'Belum ada data' }}
+                    <span class="px-3 py-1 bg-emerald-100 text-emerald-900 font-extrabold text-xs rounded-lg border border-emerald-300">
+                        No. Urut #{{ $alkes->no_urut }}
                     </span>
-                </div>
+                </h4>
 
-                <div class="p-3 bg-slate-50 rounded-lg border border-slate-100">
-                    <span class="text-[10px] text-slate-400 font-medium uppercase block">Status ASPAK</span>
-                    <span class="font-bold text-sm mt-0.5 block {{ $alkes->aspak === 'TERDATA' ? 'text-emerald-700' : 'text-slate-600' }}">
-                        {{ $alkes->aspak ?: '-' }}
-                    </span>
-                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-100">
+                        <span class="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Nama Barang</span>
+                        <span class="font-extrabold text-slate-900 text-base mt-0.5 block">{{ $alkes->nama_barang }}</span>
+                    </div>
 
-                <div class="p-3 bg-slate-50 rounded-lg border border-slate-100">
-                    <span class="text-[10px] text-slate-400 font-medium uppercase block">Status KIB</span>
-                    <span class="font-bold text-sm mt-0.5 block {{ $alkes->kib === 'TERDATA' ? 'text-emerald-700' : 'text-slate-600' }}">
-                        {{ $alkes->kib ?: '-' }}
-                    </span>
+                    <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-100">
+                        <span class="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Merk / Produsen</span>
+                        <span class="font-bold text-slate-800 text-sm mt-0.5 block">{{ $alkes->merk ?: '-' }}</span>
+                    </div>
+
+                    <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-100">
+                        <span class="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Model / Tipe</span>
+                        <span class="font-semibold text-slate-800 text-sm mt-0.5 block">{{ $alkes->tipe ?: '-' }}</span>
+                    </div>
+
+                    <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-100">
+                        <span class="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Nomor Seri (Serial Number)</span>
+                        <span class="font-mono font-bold text-slate-900 text-sm mt-0.5 block">{{ $alkes->nomor_seri ?: '-' }}</span>
+                    </div>
+
+                    <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-100">
+                        <span class="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Tahun</span>
+                        <span class="font-bold text-slate-800 text-sm mt-0.5 block">{{ $alkes->tahun ?: '-' }}</span>
+                    </div>
+
+                    <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-100">
+                        <span class="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Kode Inventaris Sistem</span>
+                        <span class="font-mono font-bold text-slate-700 text-xs mt-0.5 block">{{ $alkes->kode_inventaris }}</span>
+                    </div>
                 </div>
             </div>
 
-            @if ($alkes->sertifikat_kalibrasi)
-                <div class="p-3 bg-emerald-50 border border-emerald-200 rounded-lg flex items-center justify-between">
-                    <div>
-                        <span class="text-xs font-bold text-emerald-900 flex items-center gap-1.5">
-                            <i class="ri-file-text-line text-emerald-600"></i> Sertifikat Kalibrasi Resmi
-                        </span>
-                        <span class="text-[11px] text-emerald-700">Dokumen kalibrasi aktif tersedia</span>
+            <div class="bg-white rounded-2xl border border-slate-200 p-6 space-y-5 shadow-sm">
+                <h4 class="font-black text-sm text-slate-900 pb-3 border-b border-slate-100 flex items-center gap-2">
+                    <i class="ri-file-shield-2-line text-teal-600 text-lg"></i>
+                    Pengadaan, Distributor & Legalitas
+                </h4>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-100">
+                        <span class="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Cara Perolehan</span>
+                        <span class="font-bold text-slate-900 text-sm mt-0.5 block">{{ $alkes->cara_perolehan ?: '-' }}</span>
                     </div>
-                    <a href="{{ route('sertifikat.show', basename($alkes->sertifikat_kalibrasi)) }}" target="_blank" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition flex items-center gap-1">
+
+                    <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-100">
+                        <span class="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Nilai Perolehan</span>
+                        <span class="font-mono font-black text-emerald-950 text-sm mt-0.5 block">
+                            {{ $alkes->nilai_perolehan ? (str_starts_with($alkes->nilai_perolehan, 'Rp') ? $alkes->nilai_perolehan : 'Rp ' . $alkes->nilai_perolehan) : '-' }}
+                        </span>
+                    </div>
+
+                    <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-100 sm:col-span-2">
+                        <span class="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Distributor</span>
+                        <span class="font-bold text-slate-900 text-sm mt-0.5 block">{{ $alkes->distributor ?: '-' }}</span>
+                    </div>
+
+                    <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-100">
+                        <span class="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Status ASPAK</span>
+                        <div class="mt-1">
+                            @if (strtoupper(trim($alkes->aspak ?? '')) === 'TERDATA')
+                                <span class="px-2.5 py-1 bg-emerald-100 text-emerald-900 font-bold text-xs rounded-lg border border-emerald-300 inline-block">TERDATA</span>
+                            @elseif (strtoupper(trim($alkes->aspak ?? '')) === 'TIDAK TERDATA')
+                                <span class="px-2.5 py-1 bg-slate-100 text-slate-600 font-semibold text-xs rounded-lg border border-slate-300 inline-block">TIDAK TERDATA</span>
+                            @elseif ($alkes->aspak)
+                                <span class="px-2.5 py-1 bg-slate-100 text-slate-700 font-semibold text-xs rounded-lg border border-slate-300 inline-block">{{ $alkes->aspak }}</span>
+                            @else
+                                <span class="text-slate-400 font-medium text-sm">-</span>
+                            @endif
+                        </div>
+                    </div>
+
+                    <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-100">
+                        <span class="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Status KIB</span>
+                        <div class="mt-1">
+                            @if (strtoupper(trim($alkes->kib ?? '')) === 'TERDATA')
+                                <span class="px-2.5 py-1 bg-teal-100 text-teal-900 font-bold text-xs rounded-lg border border-teal-300 inline-block">TERDATA</span>
+                            @elseif (strtoupper(trim($alkes->kib ?? '')) === 'TIDAK TERDATA')
+                                <span class="px-2.5 py-1 bg-slate-100 text-slate-600 font-semibold text-xs rounded-lg border border-slate-300 inline-block">TIDAK TERDATA</span>
+                            @elseif ($alkes->kib)
+                                <span class="px-2.5 py-1 bg-slate-100 text-slate-700 font-semibold text-xs rounded-lg border border-slate-300 inline-block">{{ $alkes->kib }}</span>
+                            @else
+                                <span class="text-slate-400 font-medium text-sm">-</span>
+                            @endif
+                        </div>
+                    </div>
+
+                    <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-100">
+                        <span class="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">NON KIB dan ASPAK</span>
+                        <div class="mt-1">
+                            @if (strtoupper(trim($alkes->non_kib_dan_aspak ?? '')) === 'FALSE')
+                                <span class="px-2.5 py-1 bg-slate-100 text-slate-600 font-mono font-bold text-xs rounded-lg border border-slate-300 inline-block">FALSE</span>
+                            @elseif (strtoupper(trim($alkes->non_kib_dan_aspak ?? '')) === 'TRUE')
+                                <span class="px-2.5 py-1 bg-amber-100 text-amber-900 font-mono font-bold text-xs rounded-lg border border-amber-300 inline-block">TRUE</span>
+                            @elseif ($alkes->non_kib_dan_aspak)
+                                <span class="px-2.5 py-1 bg-slate-100 text-slate-700 font-mono font-semibold text-xs rounded-lg border border-slate-300 inline-block">{{ $alkes->non_kib_dan_aspak }}</span>
+                            @else
+                                <span class="text-slate-400 font-medium text-sm">-</span>
+                            @endif
+                        </div>
+                    </div>
+
+                    <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-100">
+                        <span class="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Izin Edar (AKL / AKD)</span>
+                        <div class="mt-1">
+                            @if ($alkes->akl_akd)
+                                <span class="px-2.5 py-1 bg-blue-50 text-blue-900 font-mono font-bold text-xs rounded-lg border border-blue-200 inline-block">{{ $alkes->akl_akd }}</span>
+                            @else
+                                <span class="text-slate-400 font-medium text-sm">-</span>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl border border-slate-200 p-6 space-y-3 shadow-sm">
+                <h4 class="font-black text-sm text-slate-900 pb-2 border-b border-slate-100 flex items-center gap-2">
+                    <i class="ri-chat-1-line text-indigo-600 text-lg"></i>
+                    Keterangan / Catatan Inventaris
+                </h4>
+                <p class="text-sm font-medium text-slate-700 bg-slate-50 p-4 rounded-xl border border-slate-100 leading-relaxed">
+                    {{ $alkes->keterangan ?: 'Tidak ada catatan tambahan.' }}
+                </p>
+            </div>
+
+            @if ($alkes->sertifikat_kalibrasi)
+                <div class="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center justify-between shadow-xs">
+                    <div>
+                        <span class="text-xs font-black text-emerald-950 flex items-center gap-2">
+                            <i class="ri-file-text-line text-emerald-600 text-base"></i> Sertifikat Kalibrasi Resmi
+                        </span>
+                        <span class="text-xs text-emerald-800">Dokumen kalibrasi aktif tersedia</span>
+                    </div>
+                    <a href="{{ route('sertifikat.show', basename($alkes->sertifikat_kalibrasi)) }}" target="_blank" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs">
                         <i class="ri-external-link-line"></i> Buka Dokumen
                     </a>
                 </div>
             @endif
-
-            <div class="pt-3 border-t border-slate-100">
-                <span class="text-[10px] text-slate-400 font-medium uppercase block mb-1">Keterangan</span>
-                <p class="text-sm text-slate-600 bg-slate-50 p-3 rounded-lg border border-slate-100 leading-relaxed">
-                    {{ $alkes->keterangan ?? 'Tidak ada catatan tambahan.' }}
-                </p>
-            </div>
         </div>
 
         <div class="space-y-4">

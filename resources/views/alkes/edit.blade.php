@@ -51,9 +51,21 @@
                     <input type="text" name="tahun_pengadaan" value="{{ old('tahun_pengadaan', $alkes->tahun_pengadaan) }}" class="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 transition">
                 </div>
 
+                <input type="hidden" name="jumlah" value="{{ $alkes->jumlah ?? 1 }}">
+
                 <div>
-                    <label class="block text-xs font-medium text-slate-600 mb-1.5">Jumlah Unit</label>
-                    <input type="number" name="jumlah" value="{{ old('jumlah', $alkes->jumlah) }}" min="1" class="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-lg text-sm font-mono focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 transition">
+                    <label class="block text-xs font-medium text-slate-600 mb-1.5">Cara Perolehan</label>
+                    <input type="text" name="cara_perolehan" value="{{ old('cara_perolehan', $alkes->cara_perolehan) }}" placeholder="Contoh: HIBAH APBN 2022" class="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 transition">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1.5">Nilai Perolehan (Rp)</label>
+                    <input type="text" name="nilai_perolehan" value="{{ old('nilai_perolehan', $alkes->nilai_perolehan) }}" placeholder="Contoh: 1.672.500.000,00" class="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-lg text-sm font-mono focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 transition">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1.5">Distributor</label>
+                    <input type="text" name="distributor" value="{{ old('distributor', $alkes->distributor) }}" placeholder="Contoh: PT. ETIQA PRIMA UTAMA" class="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 transition">
                 </div>
 
                 <div class="md:col-span-2">
@@ -107,6 +119,19 @@
                         <option value="TERDATA" {{ old('kib_status', $alkes->kib) == 'TERDATA' ? 'selected' : '' }}>TERDATA</option>
                         <option value="TIDAK TERDATA" {{ old('kib_status', $alkes->kib ?? 'TIDAK TERDATA') == 'TIDAK TERDATA' ? 'selected' : '' }}>TIDAK TERDATA</option>
                     </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1.5">NON KIB dan ASPAK</label>
+                    <select name="non_kib_dan_aspak" class="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400">
+                        <option value="FALSE" {{ old('non_kib_dan_aspak', $alkes->non_kib_dan_aspak ?? 'FALSE') == 'FALSE' ? 'selected' : '' }}>FALSE</option>
+                        <option value="TRUE" {{ old('non_kib_dan_aspak', $alkes->non_kib_dan_aspak) == 'TRUE' ? 'selected' : '' }}>TRUE</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1.5">Izin Edar (AKL / AKD)</label>
+                    <input type="text" name="akl_akd" value="{{ old('akl_akd', $alkes->akl_akd) }}" placeholder="Contoh: AKD 20501510565" class="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-lg text-sm font-mono focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 transition">
                 </div>
 
                 <div class="md:col-span-2">

@@ -154,80 +154,200 @@
 
     <div class="bg-white rounded-2xl border border-slate-300 shadow-sm overflow-hidden min-w-0">
         <div class="overflow-x-auto w-full scrollbar-thin">
-            <table class="w-full text-left border-collapse text-sm table-fixed">
+            <table class="w-full text-left border-collapse text-sm min-w-[2400px]">
                 <thead>
                     <tr class="bg-emerald-950 text-white border-b border-emerald-900 text-xs font-black uppercase tracking-wider select-none">
-                        <th class="px-3 py-3.5 text-center border-r border-emerald-900 w-12">No</th>
-                        <th class="px-4 py-3.5 border-r border-emerald-900 w-52">
-                            <a href="{{ request()->fullUrlWithQuery(['sort_by' => 'nama_barang', 'sort_dir' => ($sortBy === 'nama_barang' && $sortDir === 'asc') ? 'desc' : 'asc']) }}" class="flex items-center justify-between hover:text-amber-300 transition" title="Urutkan A-Z / Z-A">
+                        <th class="px-3 py-3.5 text-center border-r border-emerald-900 w-14">
+                            <a href="{{ request()->fullUrlWithQuery(['sort_by' => 'no_urut', 'sort_dir' => ($sortBy === 'no_urut' && $sortDir === 'asc') ? 'desc' : 'asc']) }}" class="flex items-center justify-center gap-1 hover:text-amber-300 transition" title="Urutkan No">
+                                <span>No.</span>
+                                <i class="ri-arrow-up-down-line text-xs {{ $sortBy == 'no_urut' ? 'text-amber-300 opacity-100' : 'opacity-50' }}"></i>
+                            </a>
+                        </th>
+                        <th class="px-4 py-3.5 border-r border-emerald-900 min-w-[200px]">
+                            <a href="{{ request()->fullUrlWithQuery(['sort_by' => 'nama_barang', 'sort_dir' => ($sortBy === 'nama_barang' && $sortDir === 'asc') ? 'desc' : 'asc']) }}" class="flex items-center justify-between hover:text-amber-300 transition" title="Urutkan Nama Barang">
                                 <span>Nama Barang</span>
                                 <i class="ri-arrow-up-down-line text-sm {{ $sortBy == 'nama_barang' ? 'text-amber-300 opacity-100' : 'opacity-50' }}"></i>
                             </a>
                         </th>
-                        <th class="px-3.5 py-3.5 border-r border-emerald-900 w-32">Merk</th>
-                        <th class="px-3.5 py-3.5 border-r border-emerald-900 w-32">Tipe</th>
-                        <th class="px-3.5 py-3.5 border-r border-emerald-900 w-36">Serial Number</th>
-                        <th class="px-3.5 py-3.5 text-center border-r border-emerald-900 w-20">Tahun</th>
-                        <th class="px-3.5 py-3.5 border-r border-emerald-900 w-36">Ruang Pemilik</th>
-                        <th class="px-3.5 py-3.5 border-r border-emerald-900 w-40">Lokasi Alkes</th>
-                        <th class="px-3.5 py-3.5 border-r border-emerald-900 w-32">
-                            <a href="{{ request()->fullUrlWithQuery(['sort_by' => 'kondisi', 'sort_dir' => ($sortBy === 'kondisi' && $sortDir === 'asc') ? 'desc' : 'asc']) }}" class="flex items-center justify-between hover:text-amber-300 transition" title="Urutkan Kondisi">
-                                <span>Kondisi</span>
+                        <th class="px-3.5 py-3.5 border-r border-emerald-900 min-w-[120px]">
+                            <a href="{{ request()->fullUrlWithQuery(['sort_by' => 'merk', 'sort_dir' => ($sortBy === 'merk' && $sortDir === 'asc') ? 'desc' : 'asc']) }}" class="flex items-center justify-between hover:text-amber-300 transition" title="Urutkan Merk">
+                                <span>Merk</span>
+                                <i class="ri-arrow-up-down-line text-sm {{ $sortBy == 'merk' ? 'text-amber-300 opacity-100' : 'opacity-50' }}"></i>
+                            </a>
+                        </th>
+                        <th class="px-3.5 py-3.5 border-r border-emerald-900 min-w-[120px]">
+                            <a href="{{ request()->fullUrlWithQuery(['sort_by' => 'tipe', 'sort_dir' => ($sortBy === 'tipe' && $sortDir === 'asc') ? 'desc' : 'asc']) }}" class="flex items-center justify-between hover:text-amber-300 transition" title="Urutkan Tipe">
+                                <span>Tipe</span>
+                                <i class="ri-arrow-up-down-line text-sm {{ $sortBy == 'tipe' ? 'text-amber-300 opacity-100' : 'opacity-50' }}"></i>
+                            </a>
+                        </th>
+                        <th class="px-3.5 py-3.5 border-r border-emerald-900 min-w-[140px]">
+                            <a href="{{ request()->fullUrlWithQuery(['sort_by' => 'nomor_seri', 'sort_dir' => ($sortBy === 'nomor_seri' && $sortDir === 'asc') ? 'desc' : 'asc']) }}" class="flex items-center justify-between hover:text-amber-300 transition" title="Urutkan Serial Number">
+                                <span>Serial Number</span>
+                                <i class="ri-arrow-up-down-line text-sm {{ $sortBy == 'nomor_seri' ? 'text-amber-300 opacity-100' : 'opacity-50' }}"></i>
+                            </a>
+                        </th>
+                        <th class="px-3 py-3.5 text-center border-r border-emerald-900 min-w-[80px]">
+                            <a href="{{ request()->fullUrlWithQuery(['sort_by' => 'tahun', 'sort_dir' => ($sortBy === 'tahun' && $sortDir === 'asc') ? 'desc' : 'asc']) }}" class="flex items-center justify-center gap-1 hover:text-amber-300 transition" title="Urutkan Tahun">
+                                <span>Tahun</span>
+                                <i class="ri-arrow-up-down-line text-xs {{ $sortBy == 'tahun' ? 'text-amber-300 opacity-100' : 'opacity-50' }}"></i>
+                            </a>
+                        </th>
+                        <th class="px-3.5 py-3.5 border-r border-emerald-900 min-w-[140px]">
+                            <a href="{{ request()->fullUrlWithQuery(['sort_by' => 'cara_perolehan', 'sort_dir' => ($sortBy === 'cara_perolehan' && $sortDir === 'asc') ? 'desc' : 'asc']) }}" class="flex items-center justify-between hover:text-amber-300 transition" title="Urutkan Cara Perolehan">
+                                <span>Cara Perolehan</span>
+                                <i class="ri-arrow-up-down-line text-sm {{ $sortBy == 'cara_perolehan' ? 'text-amber-300 opacity-100' : 'opacity-50' }}"></i>
+                            </a>
+                        </th>
+                        <th class="px-3.5 py-3.5 border-r border-emerald-900 min-w-[150px]">
+                            <a href="{{ request()->fullUrlWithQuery(['sort_by' => 'nilai_perolehan', 'sort_dir' => ($sortBy === 'nilai_perolehan' && $sortDir === 'asc') ? 'desc' : 'asc']) }}" class="flex items-center justify-between hover:text-amber-300 transition" title="Urutkan Nilai Perolehan">
+                                <span>Nilai Perolehan</span>
+                                <i class="ri-arrow-up-down-line text-sm {{ $sortBy == 'nilai_perolehan' ? 'text-amber-300 opacity-100' : 'opacity-50' }}"></i>
+                            </a>
+                        </th>
+                        <th class="px-3.5 py-3.5 border-r border-emerald-900 min-w-[140px]">
+                            <a href="{{ request()->fullUrlWithQuery(['sort_by' => 'distributor', 'sort_dir' => ($sortBy === 'distributor' && $sortDir === 'asc') ? 'desc' : 'asc']) }}" class="flex items-center justify-between hover:text-amber-300 transition" title="Urutkan Distributor">
+                                <span>Distributor</span>
+                                <i class="ri-arrow-up-down-line text-sm {{ $sortBy == 'distributor' ? 'text-amber-300 opacity-100' : 'opacity-50' }}"></i>
+                            </a>
+                        </th>
+                        <th class="px-3.5 py-3.5 border-r border-emerald-900 min-w-[140px]">Ruangan</th>
+                        <th class="px-3.5 py-3.5 border-r border-emerald-900 min-w-[140px]">Lokasi Saat Ini</th>
+                        <th class="px-3.5 py-3.5 text-center border-r border-emerald-900 min-w-[130px]">
+                            <a href="{{ request()->fullUrlWithQuery(['sort_by' => 'kondisi', 'sort_dir' => ($sortBy === 'kondisi' && $sortDir === 'asc') ? 'desc' : 'asc']) }}" class="flex items-center justify-center gap-1 hover:text-amber-300 transition" title="Urutkan Kondisi">
+                                <span>Kondisi Alat</span>
                                 <i class="ri-arrow-up-down-line text-sm {{ $sortBy == 'kondisi' ? 'text-amber-300 opacity-100' : 'opacity-50' }}"></i>
                             </a>
                         </th>
-                        <th class="px-3.5 py-3.5 border-r border-emerald-900 w-40">Status Kalibrasi</th>
-                        <th class="px-4 py-3.5 border-r border-emerald-900 w-44">Keterangan</th>
-                        <th class="px-4 py-3.5 text-center w-40">Aksi</th>
+                        <th class="px-3.5 py-3.5 text-center border-r border-emerald-900 min-w-[120px]">
+                            <a href="{{ request()->fullUrlWithQuery(['sort_by' => 'aspak', 'sort_dir' => ($sortBy === 'aspak' && $sortDir === 'asc') ? 'desc' : 'asc']) }}" class="flex items-center justify-center gap-1 hover:text-amber-300 transition" title="Urutkan ASPAK">
+                                <span>ASPAK</span>
+                                <i class="ri-arrow-up-down-line text-xs {{ $sortBy == 'aspak' ? 'text-amber-300 opacity-100' : 'opacity-50' }}"></i>
+                            </a>
+                        </th>
+                        <th class="px-3.5 py-3.5 text-center border-r border-emerald-900 min-w-[120px]">
+                            <a href="{{ request()->fullUrlWithQuery(['sort_by' => 'kib', 'sort_dir' => ($sortBy === 'kib' && $sortDir === 'asc') ? 'desc' : 'asc']) }}" class="flex items-center justify-center gap-1 hover:text-amber-300 transition" title="Urutkan KIB">
+                                <span>KIB</span>
+                                <i class="ri-arrow-up-down-line text-xs {{ $sortBy == 'kib' ? 'text-amber-300 opacity-100' : 'opacity-50' }}"></i>
+                            </a>
+                        </th>
+                        <th class="px-3.5 py-3.5 text-center border-r border-emerald-900 min-w-[140px]">
+                            <a href="{{ request()->fullUrlWithQuery(['sort_by' => 'non_kib_dan_aspak', 'sort_dir' => ($sortBy === 'non_kib_dan_aspak' && $sortDir === 'asc') ? 'desc' : 'asc']) }}" class="flex items-center justify-center gap-1 hover:text-amber-300 transition" title="Urutkan NON KIB dan ASPAK">
+                                <span>NON KIB dan ASPAK</span>
+                                <i class="ri-arrow-up-down-line text-xs {{ $sortBy == 'non_kib_dan_aspak' ? 'text-amber-300 opacity-100' : 'opacity-50' }}"></i>
+                            </a>
+                        </th>
+                        <th class="px-3.5 py-3.5 border-r border-emerald-900 min-w-[130px]">
+                            <a href="{{ request()->fullUrlWithQuery(['sort_by' => 'akl_akd', 'sort_dir' => ($sortBy === 'akl_akd' && $sortDir === 'asc') ? 'desc' : 'asc']) }}" class="flex items-center justify-between hover:text-amber-300 transition" title="Urutkan AKL/AKD">
+                                <span>AKL/AKD</span>
+                                <i class="ri-arrow-up-down-line text-xs {{ $sortBy == 'akl_akd' ? 'text-amber-300 opacity-100' : 'opacity-50' }}"></i>
+                            </a>
+                        </th>
+                        <th class="px-4 py-3.5 border-r border-emerald-900 min-w-[160px]">Keterangan</th>
+                        <th class="px-3.5 py-3.5 text-center border-r border-emerald-900 min-w-[130px]">Status Kalibrasi</th>
+                        <th class="px-4 py-3.5 text-center w-36 sticky right-0 bg-emerald-950 z-20 shadow-[-4px_0_8px_rgba(0,0,0,0.25)] border-l border-emerald-900">Aksi</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-200 font-medium text-slate-900 text-sm">
                     @forelse ($alkesList as $index => $alkes)
                         @php $rowNumber = $alkesList->firstItem() + $index; @endphp
-                        <tr class="hover:bg-emerald-50/50 transition odd:bg-white even:bg-slate-50/70 border-b border-slate-200">
-                            <td class="px-3 py-3 text-center font-bold text-slate-700 border-r border-slate-200">{{ $rowNumber }}</td>
+                        <tr class="group hover:bg-emerald-50/60 transition odd:bg-white even:bg-slate-50/70 border-b border-slate-200">
+                            <td class="px-3 py-3 text-center font-bold text-slate-700 border-r border-slate-200">
+                                {{ $alkes->no_urut ?? $rowNumber }}
+                            </td>
                             <td class="px-4 py-3 border-r border-slate-200">
-                                <div class="font-extrabold text-slate-900 truncate" title="{{ $alkes->nama_barang }}">{{ $alkes->nama_barang }}</div>
+                                <div class="font-extrabold text-slate-900" title="{{ $alkes->nama_barang }}">{{ $alkes->nama_barang }}</div>
                             </td>
                             <td class="px-3.5 py-3 border-r border-slate-200">
-                                <div class="font-semibold text-slate-800 truncate" title="{{ $alkes->merk }}">{{ $alkes->merk ?: '-' }}</div>
+                                <div class="font-semibold text-slate-800" title="{{ $alkes->merk }}">{{ $alkes->merk ?: '-' }}</div>
                             </td>
                             <td class="px-3.5 py-3 border-r border-slate-200">
-                                <div class="text-slate-800 truncate" title="{{ $alkes->tipe }}">{{ $alkes->tipe ?: '-' }}</div>
+                                <div class="text-slate-800" title="{{ $alkes->tipe }}">{{ $alkes->tipe ?: '-' }}</div>
                             </td>
                             <td class="px-3.5 py-3 border-r border-slate-200">
-                                <div class="font-mono font-bold text-slate-900 truncate" title="{{ $alkes->nomor_seri }}">{{ $alkes->nomor_seri ?: '-' }}</div>
+                                <div class="font-mono font-bold text-slate-900" title="{{ $alkes->nomor_seri }}">{{ $alkes->nomor_seri ?: '-' }}</div>
                             </td>
-                            <td class="px-3.5 py-3 text-center font-bold text-slate-800 border-r border-slate-200">{{ $alkes->tahun_pengadaan ?: '-' }}</td>
+                            <td class="px-3 py-3 text-center font-bold text-slate-800 border-r border-slate-200">
+                                {{ $alkes->tahun ?: '-' }}
+                            </td>
+                            <td class="px-3.5 py-3 border-r border-slate-200">
+                                <div class="font-semibold text-slate-800" title="{{ $alkes->cara_perolehan }}">{{ $alkes->cara_perolehan ?: '-' }}</div>
+                            </td>
+                            <td class="px-3.5 py-3 border-r border-slate-200 font-mono text-xs font-bold text-emerald-950">
+                                {{ $alkes->nilai_perolehan ? (str_starts_with($alkes->nilai_perolehan, 'Rp') ? $alkes->nilai_perolehan : 'Rp ' . $alkes->nilai_perolehan) : '-' }}
+                            </td>
+                            <td class="px-3.5 py-3 border-r border-slate-200">
+                                <div class="text-slate-800" title="{{ $alkes->distributor }}">{{ $alkes->distributor ?: '-' }}</div>
+                            </td>
                             <td class="px-3.5 py-3 border-r border-slate-200">
                                 <div class="font-bold text-slate-900 truncate" title="{{ $alkes->ruangan->nama_ruangan ?? '-' }}">{{ $alkes->ruangan->nama_ruangan ?? '-' }}</div>
                             </td>
                             <td class="px-3.5 py-3 border-r border-slate-200">
                                 @if ($alkes->ruangan_id != $alkes->lokasi_ruangan_id)
-                                    <span class="font-bold text-emerald-900 bg-emerald-100 px-2 py-0.5 rounded border border-emerald-300 inline-block truncate max-w-full" title="Dipinjam / Pindah dari Ruang Pemilik">{{ $alkes->lokasiRuangan->nama_ruangan ?? '-' }}</span>
+                                    <span class="font-bold text-emerald-900 bg-emerald-100 px-2 py-0.5 rounded border border-emerald-300 inline-block truncate max-w-full" title="Dipinjam / Pindah dari Ruang Pemilik">{{ $alkes->lokasiRuangan->nama_ruangan ?? $alkes->lokasi_saat_ini_note ?? '-' }}</span>
                                 @else
                                     <span class="text-slate-800 font-semibold inline-block truncate max-w-full" title="{{ $alkes->lokasiRuangan->nama_ruangan ?? $alkes->ruangan->nama_ruangan ?? '-' }}">{{ $alkes->lokasiRuangan->nama_ruangan ?? $alkes->ruangan->nama_ruangan ?? '-' }}</span>
                                 @endif
                             </td>
-                            <td class="px-3.5 py-3 border-r border-slate-200">
+                            <td class="px-3.5 py-3 text-center border-r border-slate-200">
                                 <span class="inline-block px-2.5 py-0.5 rounded text-xs font-black border {{ $alkes->kondisi_enum->warnaBadge() }}">{{ $alkes->kondisi_enum->label() }}</span>
                             </td>
-                            <td class="px-3.5 py-3 border-r border-slate-200">
-                                @if ($alkes->status_kalibrasi === 'SUDAH DIKALIBRASI')
-                                    <span class="inline-block px-2.5 py-0.5 rounded text-xs font-bold bg-emerald-100 text-emerald-900 border border-emerald-300">
-                                        <i class="ri-checkbox-circle-fill text-emerald-600"></i> SUDAH DIKALIBRASI
-                                    </span>
+                            <td class="px-3.5 py-3 text-center border-r border-slate-200">
+                                @if (strtoupper(trim($alkes->aspak ?? '')) === 'TERDATA')
+                                    <span class="inline-block px-2 py-0.5 rounded text-xs font-bold bg-emerald-100 text-emerald-900 border border-emerald-300">TERDATA</span>
+                                @elseif (strtoupper(trim($alkes->aspak ?? '')) === 'TIDAK TERDATA')
+                                    <span class="inline-block px-2 py-0.5 rounded text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-300">TIDAK TERDATA</span>
+                                @elseif ($alkes->aspak)
+                                    <span class="inline-block px-2 py-0.5 rounded text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-300">{{ $alkes->aspak }}</span>
                                 @else
-                                    <span class="inline-block px-2.5 py-0.5 rounded text-xs font-bold bg-slate-100 text-slate-700 border border-slate-300">
-                                        <i class="ri-time-line text-slate-500"></i> BELUM DIKALIBRASI
-                                    </span>
+                                    <span class="text-slate-400 text-xs">-</span>
+                                @endif
+                            </td>
+                            <td class="px-3.5 py-3 text-center border-r border-slate-200">
+                                @if (strtoupper(trim($alkes->kib ?? '')) === 'TERDATA')
+                                    <span class="inline-block px-2 py-0.5 rounded text-xs font-bold bg-teal-100 text-teal-900 border border-teal-300">TERDATA</span>
+                                @elseif (strtoupper(trim($alkes->kib ?? '')) === 'TIDAK TERDATA')
+                                    <span class="inline-block px-2 py-0.5 rounded text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-300">TIDAK TERDATA</span>
+                                @elseif ($alkes->kib)
+                                    <span class="inline-block px-2 py-0.5 rounded text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-300">{{ $alkes->kib }}</span>
+                                @else
+                                    <span class="text-slate-400 text-xs">-</span>
+                                @endif
+                            </td>
+                            <td class="px-3.5 py-3 text-center border-r border-slate-200">
+                                @if (strtoupper(trim($alkes->non_kib_dan_aspak ?? '')) === 'FALSE')
+                                    <span class="inline-block px-2 py-0.5 rounded text-xs font-mono font-semibold bg-slate-100 text-slate-600 border border-slate-300">FALSE</span>
+                                @elseif (strtoupper(trim($alkes->non_kib_dan_aspak ?? '')) === 'TRUE')
+                                    <span class="inline-block px-2 py-0.5 rounded text-xs font-mono font-bold bg-amber-100 text-amber-900 border border-amber-300">TRUE</span>
+                                @elseif ($alkes->non_kib_dan_aspak)
+                                    <span class="inline-block px-2 py-0.5 rounded text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-300">{{ $alkes->non_kib_dan_aspak }}</span>
+                                @else
+                                    <span class="text-slate-400 text-xs">-</span>
+                                @endif
+                            </td>
+                            <td class="px-3.5 py-3 border-r border-slate-200">
+                                @if ($alkes->akl_akd)
+                                    <span class="inline-block font-mono text-xs font-bold px-2 py-0.5 rounded bg-blue-50 text-blue-900 border border-blue-200">{{ $alkes->akl_akd }}</span>
+                                @else
+                                    <span class="text-slate-400 text-xs">-</span>
                                 @endif
                             </td>
                             <td class="px-4 py-3 text-slate-800 border-r border-slate-200 font-medium">
-                                <div class="truncate" title="{{ $alkes->keterangan }}">{{ $alkes->keterangan ?: '-' }}</div>
+                                <div class="truncate max-w-xs" title="{{ $alkes->keterangan }}">{{ $alkes->keterangan ?: '-' }}</div>
                             </td>
-                            <td class="px-4 py-3 text-center whitespace-nowrap pr-4">
-                                <div class="flex items-center justify-center gap-1.5 pr-1">
+                            <td class="px-3.5 py-3 text-center border-r border-slate-200">
+                                @if ($alkes->status_kalibrasi === 'SUDAH DIKALIBRASI')
+                                    <span class="inline-block px-2 py-0.5 rounded text-xs font-bold bg-emerald-100 text-emerald-900 border border-emerald-300">
+                                        <i class="ri-checkbox-circle-fill text-emerald-600"></i> SUDAH
+                                    </span>
+                                @else
+                                    <span class="inline-block px-2 py-0.5 rounded text-xs font-bold bg-slate-100 text-slate-700 border border-slate-300">
+                                        <i class="ri-time-line text-slate-500"></i> BELUM
+                                    </span>
+                                @endif
+                            </td>
+                            <td class="px-4 py-3 text-center whitespace-nowrap sticky right-0 bg-white group-hover:bg-emerald-50/80 z-10 shadow-[-4px_0_8px_rgba(0,0,0,0.06)] border-l border-slate-200">
+                                <div class="flex items-center justify-center gap-1.5">
                                     <a href="{{ route('alkes.show', $alkes->id) }}" class="p-1.5 text-emerald-700 hover:bg-emerald-100 rounded-lg transition" title="Lihat Detail">
                                         <i class="ri-eye-line text-lg"></i>
                                     </a>
@@ -256,7 +376,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="12" class="px-6 py-12 text-center text-slate-700 font-bold">
+                            <td colspan="19" class="px-6 py-12 text-center text-slate-700 font-bold">
                                 <i class="ri-inbox-line text-5xl block mb-3 text-slate-400"></i>
                                 Tidak ada data alat kesehatan ditemukan.
                             </td>

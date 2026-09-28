@@ -142,7 +142,7 @@ class GoogleSheetSyncService
                         continue;
                     }
 
-                    $seqNo = $totalProcessed + 1;
+                    $seqNo = (is_numeric($noRaw) && (int) $noRaw > 0) ? (int) $noRaw : ($totalProcessed + 1);
                     $jumlah = 1;
 
                     $kondisi = !empty($kondisiRaw) ? strtoupper($kondisiRaw) : null;
@@ -199,6 +199,10 @@ class GoogleSheetSyncService
                     }
 
                     $totalProcessed++;
+                }
+
+                if (!empty($matchedIds)) {
+                    Alkes::whereNotIn('id', $matchedIds)->delete();
                 }
 
                 ActivityLog::record(

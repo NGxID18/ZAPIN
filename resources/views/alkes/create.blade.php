@@ -49,9 +49,21 @@
                     <input type="text" name="tahun_pengadaan" value="{{ old('tahun_pengadaan', date('Y')) }}" placeholder="Contoh: 2023" class="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl text-sm font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 transition">
                 </div>
 
+                <input type="hidden" name="jumlah" value="1">
+
                 <div>
-                    <label class="block text-xs font-black text-slate-800 uppercase tracking-wider mb-2">Jumlah Unit</label>
-                    <input type="number" name="jumlah" value="{{ old('jumlah', 1) }}" min="1" class="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl text-sm font-mono font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 transition">
+                    <label class="block text-xs font-black text-slate-800 uppercase tracking-wider mb-2">Cara Perolehan</label>
+                    <input type="text" name="cara_perolehan" value="{{ old('cara_perolehan') }}" placeholder="Contoh: HIBAH APBN 2022, BLUD 2023, DAK 2023" class="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl text-sm font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 transition">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-black text-slate-800 uppercase tracking-wider mb-2">Nilai Perolehan (Rp)</label>
+                    <input type="text" name="nilai_perolehan" value="{{ old('nilai_perolehan') }}" placeholder="Contoh: 1.672.500.000,00" class="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl text-sm font-mono font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 transition">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-black text-slate-800 uppercase tracking-wider mb-2">Distributor</label>
+                    <input type="text" name="distributor" value="{{ old('distributor') }}" placeholder="Contoh: PT. ETIQA PRIMA UTAMA" class="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl text-sm font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 transition">
                 </div>
 
                 <div class="md:col-span-2">
@@ -109,6 +121,19 @@
                         <option value="TERDATA" {{ old('kib_status') == 'TERDATA' ? 'selected' : '' }}>TERDATA</option>
                         <option value="TIDAK TERDATA" {{ old('kib_status', 'TIDAK TERDATA') == 'TIDAK TERDATA' ? 'selected' : '' }}>TIDAK TERDATA</option>
                     </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-black text-slate-800 uppercase tracking-wider mb-2">NON KIB dan ASPAK</label>
+                    <select name="non_kib_dan_aspak" class="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl text-sm font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600">
+                        <option value="FALSE" {{ old('non_kib_dan_aspak', 'FALSE') == 'FALSE' ? 'selected' : '' }}>FALSE</option>
+                        <option value="TRUE" {{ old('non_kib_dan_aspak') == 'TRUE' ? 'selected' : '' }}>TRUE</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-black text-slate-800 uppercase tracking-wider mb-2">Izin Edar (AKL / AKD)</label>
+                    <input type="text" name="akl_akd" value="{{ old('akl_akd') }}" placeholder="Contoh: AKD 20501510565 / AKL 10901510712" class="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl text-sm font-mono font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 transition">
                 </div>
 
                 <div class="md:col-span-2">

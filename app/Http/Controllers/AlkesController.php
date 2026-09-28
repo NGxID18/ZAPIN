@@ -25,10 +25,18 @@ class AlkesController extends Controller
                   ->orWhere('tipe', 'ilike', "%{$s}%")
                   ->orWhere('nomor_seri', 'ilike', "%{$s}%")
                   ->orWhere('cara_perolehan', 'ilike', "%{$s}%")
+                  ->orWhere('nilai_perolehan', 'ilike', "%{$s}%")
                   ->orWhere('distributor', 'ilike', "%{$s}%")
+                  ->orWhere('aspak', 'ilike', "%{$s}%")
+                  ->orWhere('kib', 'ilike', "%{$s}%")
+                  ->orWhere('non_kib_dan_aspak', 'ilike', "%{$s}%")
+                  ->orWhere('akl_akd', 'ilike', "%{$s}%")
                   ->orWhere('keterangan', 'ilike', "%{$s}%")
                   ->orWhereHas('ruangan', function ($rq) use ($s) {
                       $rq->where('nama_ruangan', 'ilike', "%{$s}%");
+                  })
+                  ->orWhereHas('lokasiRuangan', function ($lq) use ($s) {
+                      $lq->where('nama_ruangan', 'ilike', "%{$s}%");
                   });
             });
         }
@@ -60,7 +68,15 @@ class AlkesController extends Controller
             'tipe' => 'tipe',
             'nomor_seri' => 'nomor_seri',
             'tahun' => 'tahun',
+            'cara_perolehan' => 'cara_perolehan',
+            'nilai_perolehan' => 'nilai_perolehan',
+            'distributor' => 'distributor',
             'kondisi' => 'kondisi',
+            'aspak' => 'aspak',
+            'kib' => 'kib',
+            'non_kib_dan_aspak' => 'non_kib_dan_aspak',
+            'akl_akd' => 'akl_akd',
+            'keterangan' => 'keterangan',
             'created_at' => 'created_at',
         ];
 
@@ -111,19 +127,34 @@ class AlkesController extends Controller
             'tahun' => 'nullable|string|max:10',
             'tahun_pengadaan' => 'nullable|string|max:10',
             'jumlah' => 'nullable|integer|min:1',
+            'cara_perolehan' => 'nullable|string|max:255',
+            'nilai_perolehan' => 'nullable|string|max:255',
+            'distributor' => 'nullable|string|max:255',
             'ruangan_id' => 'required|exists:ruangan,id',
             'status' => 'nullable|string|max:50',
             'kondisi' => 'nullable|string|max:50',
+            'aspak' => 'nullable|string|max:50',
             'aspak_status' => 'nullable|string|max:50',
+            'kib' => 'nullable|string|max:50',
             'kib_status' => 'nullable|string|max:50',
+            'non_kib_dan_aspak' => 'nullable|string|max:255',
+            'akl_akd' => 'nullable|string|max:255',
             'keterangan' => 'nullable|string',
         ]);
 
         if (!empty($validated['tahun_pengadaan'])) {
             $validated['tahun'] = $validated['tahun_pengadaan'];
         }
-        $validated['aspak'] = ($request->input('aspak_status') === 'TERDATA') ? 'TERDATA' : 'TIDAK TERDATA';
-        $validated['kib'] = ($request->input('kib_status') === 'TERDATA') ? 'TERDATA' : 'TIDAK TERDATA';
+        if ($request->filled('aspak')) {
+            $validated['aspak'] = $request->input('aspak');
+        } elseif ($request->filled('aspak_status')) {
+            $validated['aspak'] = ($request->input('aspak_status') === 'TERDATA') ? 'TERDATA' : 'TIDAK TERDATA';
+        }
+        if ($request->filled('kib')) {
+            $validated['kib'] = $request->input('kib');
+        } elseif ($request->filled('kib_status')) {
+            $validated['kib'] = ($request->input('kib_status') === 'TERDATA') ? 'TERDATA' : 'TIDAK TERDATA';
+        }
 
         if (session('user_role') === 'ruangan' && session('user_ruangan_id')) {
             $validated['ruangan_id'] = (int) session('user_ruangan_id');
@@ -207,11 +238,18 @@ class AlkesController extends Controller
             'tahun' => 'nullable|string|max:10',
             'tahun_pengadaan' => 'nullable|string|max:10',
             'jumlah' => 'nullable|integer|min:1',
+            'cara_perolehan' => 'nullable|string|max:255',
+            'nilai_perolehan' => 'nullable|string|max:255',
+            'distributor' => 'nullable|string|max:255',
             'ruangan_id' => 'required|exists:ruangan,id',
             'kondisi' => 'nullable|string|max:50',
             'status' => 'nullable|string|max:50',
+            'aspak' => 'nullable|string|max:50',
             'aspak_status' => 'nullable|string|max:50',
+            'kib' => 'nullable|string|max:50',
             'kib_status' => 'nullable|string|max:50',
+            'non_kib_dan_aspak' => 'nullable|string|max:255',
+            'akl_akd' => 'nullable|string|max:255',
             'keterangan' => 'nullable|string',
         ]);
 
@@ -222,10 +260,14 @@ class AlkesController extends Controller
         if (isset($validated['tahun_pengadaan']) && !empty($validated['tahun_pengadaan'])) {
             $validated['tahun'] = $validated['tahun_pengadaan'];
         }
-        if ($request->has('aspak_status')) {
+        if ($request->has('aspak')) {
+            $validated['aspak'] = $request->input('aspak');
+        } elseif ($request->has('aspak_status')) {
             $validated['aspak'] = ($request->input('aspak_status') === 'TERDATA') ? 'TERDATA' : 'TIDAK TERDATA';
         }
-        if ($request->has('kib_status')) {
+        if ($request->has('kib')) {
+            $validated['kib'] = $request->input('kib');
+        } elseif ($request->has('kib_status')) {
             $validated['kib'] = ($request->input('kib_status') === 'TERDATA') ? 'TERDATA' : 'TIDAK TERDATA';
         }
 
