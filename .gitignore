@@ -116,3 +116,6 @@ ehthumbs.db
 *.tar.gz
 *.rar
 .directory
+
+# Scripts & Automation
+/scripts/
