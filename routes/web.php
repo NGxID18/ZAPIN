@@ -36,7 +36,6 @@ Route::middleware([EnsureSessionRole::class])->group(function () {
     Route::get('pemeliharaan', [LogPemeliharaanController::class, 'index'])->name('pemeliharaan.index');
     Route::get('kalibrasi', [KalibrasiController::class, 'index'])->name('kalibrasi.index');
 
-    // Operasi Perubahan Data (Hanya untuk Elektromedis & Ruangan - Tata Usaha Read-Only)
     Route::middleware(['role:elektromedis,ruangan'])->group(function () {
         Route::get('mutasi/buat', [MutasiAlkesController::class, 'create'])->name('mutasi.create');
         Route::post('mutasi', [MutasiAlkesController::class, 'store'])->name('mutasi.store');
@@ -48,7 +47,6 @@ Route::middleware([EnsureSessionRole::class])->group(function () {
         Route::post('pemeliharaan', [LogPemeliharaanController::class, 'store'])->name('pemeliharaan.store');
     });
 
-    // Operasi Khusus Elektromedis (Penyelesaian Perbaikan & Kalibrasi)
     Route::middleware(['role:elektromedis'])->group(function () {
         Route::post('pemeliharaan/{id}/selesai', [LogPemeliharaanController::class, 'resolve'])->name('pemeliharaan.resolve');
         Route::post('kalibrasi/{id}', [KalibrasiController::class, 'update'])->name('kalibrasi.update');

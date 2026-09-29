@@ -79,7 +79,6 @@ class MutasiAlkesController extends Controller
             $alkes = Alkes::where('id', $validated['alkes_id'])->lockForUpdate()->firstOrFail();
             $ruanganAsalId = $alkes->lokasi_ruangan_id ?? $alkes->ruangan_id;
 
-            // Proteksi Otorisasi: Peran ruangan hanya boleh memutasi alat di ruangannya
             if (!$alkes->canBeOperatedByCurrentRole()) {
                 abort(403, 'Akses Ditolak: Anda hanya memiliki hak akses untuk memutasi alat kesehatan di ruangan Anda.');
             }

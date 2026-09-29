@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\ActivityLog;
 use App\Models\Alkes;
 use App\Models\LogPemeliharaan;
+use App\Services\GoogleSheetSyncService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -121,6 +122,8 @@ class LogPemeliharaanController extends Controller
             );
         });
 
+        app(GoogleSheetSyncService::class)->pushUpdateToSheet($alkes->fresh());
+
         return redirect()->route('pemeliharaan.index')->with('success', 'Laporan kerusakan alkes berhasil dikirim ke Instalasi Elektromedis.');
     }
 
@@ -132,7 +135,8 @@ class LogPemeliharaanController extends Controller
             'pelaksana_vendor' => 'nullable|string',
         ]);
 
-        DB::transaction(function () use ($id, $validated) {
+        $alkes = null;
+        DB::transaction(function () use ($id, $validated, &$alkes) {
             $log = LogPemeliharaan::where('id', $id)->lockForUpdate()->firstOrFail();
             $log->update([
                 'tindakan_perbaikan' => $validated['tindakan_perbaikan'],
@@ -157,6 +161,10 @@ class LogPemeliharaanController extends Controller
                 );
             }
         });
+
+        if ($alkes) {
+            app(GoogleSheetSyncService::class)->pushUpdateToSheet($alkes->fresh());
+        }
 
         return redirect()->route('pemeliharaan.index')->with('success', 'Perbaikan alkes berhasil ditandai selesai dan unit kembali beroperasi normal.');
     }

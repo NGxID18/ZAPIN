@@ -82,12 +82,10 @@ class KalibrasiController extends Controller
             $cleanName = preg_replace('/[^a-zA-Z0-9_-]/', '_', pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME));
             $fileName = 'sertifikat_' . $alkes->id . '_' . time() . '_' . substr($cleanName, 0, 30) . '.' . $ext;
 
-            // Simpan ke storage publik
             $file->storeAs('uploads/sertifikat', $fileName, 'public');
 
             $validated['sertifikat_kalibrasi'] = $fileName;
 
-            // Tambahkan entri baru ke riwayat sertifikat multi-tahun
             $history = is_array($alkes->sertifikat_kalibrasi_history) ? $alkes->sertifikat_kalibrasi_history : [];
             $history[] = [
                 'file_name' => $fileName,
@@ -115,10 +113,7 @@ class KalibrasiController extends Controller
 
     public function serveCertificate($filename)
     {
-        // Sanitasi ketat terhadap Path Traversal: ekstrak hanya nama file murni
         $safeName = basename($filename);
-
-        // Validasi ekstensi berkas yang sah
         $ext = strtolower(pathinfo($safeName, PATHINFO_EXTENSION));
         $allowedExtensions = ['pdf', 'jpg', 'jpeg', 'png', 'webp'];
         if (!in_array($ext, $allowedExtensions)) {

@@ -16,7 +16,6 @@ class DashboardController extends Controller
         $alkesTersedia = Alkes::where('kondisi', 'BAIK')->count();
         $alkesRusak = Alkes::where('kondisi', 'LIKE', '%RUSAK%')->count();
 
-        // 25 Ruangan Riil dengan kalkulasi alkes aktual
         $ruanganList = Ruangan::withCount([
             'alkesLokasi as alkes_count',
             'alkesLokasi as alkes_rusak_count' => function ($q) {

@@ -10,6 +10,7 @@ function getSecretKey() {
 var CONFIG = {
   API_URL: 'https://zapin.online/api/sheets/webhook-update',
   PING_URL: 'https://zapin.online/api/ping',
+  EXPORT_URL: 'https://zapin.online/api/sheets/export-data',
   SECRET_KEY: getSecretKey(),
   HEADER_ROW: 8,
   DATA_START_ROW: 9,
