@@ -19,26 +19,75 @@ class AlkesController extends Controller
 
         if ($request->filled('search')) {
             $s = trim($request->search);
-            $query->where(function ($q) use ($s) {
-                $q->where('nama_barang', 'ilike', "%{$s}%")
-                  ->orWhere('merk', 'ilike', "%{$s}%")
-                  ->orWhere('tipe', 'ilike', "%{$s}%")
-                  ->orWhere('nomor_seri', 'ilike', "%{$s}%")
-                  ->orWhere('cara_perolehan', 'ilike', "%{$s}%")
-                  ->orWhere('nilai_perolehan', 'ilike', "%{$s}%")
-                  ->orWhere('distributor', 'ilike', "%{$s}%")
-                  ->orWhere('aspak', 'ilike', "%{$s}%")
-                  ->orWhere('kib', 'ilike', "%{$s}%")
-                  ->orWhere('non_kib_dan_aspak', 'ilike', "%{$s}%")
-                  ->orWhere('akl_akd', 'ilike', "%{$s}%")
-                  ->orWhere('keterangan', 'ilike', "%{$s}%")
-                  ->orWhereHas('ruangan', function ($rq) use ($s) {
-                      $rq->where('nama_ruangan', 'ilike', "%{$s}%");
-                  })
-                  ->orWhereHas('lokasiRuangan', function ($lq) use ($s) {
-                      $lq->where('nama_ruangan', 'ilike', "%{$s}%");
-                  });
+            $upperS = strtoupper($s);
+            $query->where(function ($q) use ($s, $upperS) {
+                if ($upperS === 'DAK') {
+                    $q->whereRaw("cara_perolehan ~* '\yDAK\y'")
+                      ->orWhereRaw("nama_barang ~* '\yDAK\y'")
+                      ->orWhereRaw("merk ~* '\yDAK\y'")
+                      ->orWhereRaw("tipe ~* '\yDAK\y'")
+                      ->orWhereRaw("nomor_seri ~* '\yDAK\y'")
+                      ->orWhereRaw("distributor ~* '\yDAK\y'")
+                      ->orWhereRaw("keterangan ~* '\yDAK\y'");
+                } else {
+                    $q->where('nama_barang', 'ilike', "%{$s}%")
+                      ->orWhere('merk', 'ilike', "%{$s}%")
+                      ->orWhere('tipe', 'ilike', "%{$s}%")
+                      ->orWhere('nomor_seri', 'ilike', "%{$s}%")
+                      ->orWhere('cara_perolehan', 'ilike', "%{$s}%")
+                      ->orWhere('nilai_perolehan', 'ilike', "%{$s}%")
+                      ->orWhere('distributor', 'ilike', "%{$s}%")
+                      ->orWhere('akl_akd', 'ilike', "%{$s}%")
+                      ->orWhere('keterangan', 'ilike', "%{$s}%")
+                      ->orWhereHas('ruangan', function ($rq) use ($s) {
+                          $rq->where('nama_ruangan', 'ilike', "%{$s}%");
+                      })
+                      ->orWhereHas('lokasiRuangan', function ($lq) use ($s) {
+                          $lq->where('nama_ruangan', 'ilike', "%{$s}%");
+                      });
+
+                    if (in_array($upperS, ['TERDATA', 'TIDAK TERDATA', 'TIDAK'])) {
+                        $q->orWhere('aspak', 'ilike', "%{$s}%")
+                          ->orWhere('kib', 'ilike', "%{$s}%");
+                    }
+                    if (in_array($upperS, ['TRUE', 'FALSE'])) {
+                        $q->orWhere('non_kib_dan_aspak', 'ilike', "%{$s}%");
+                    }
+                }
             });
+        }
+
+        if ($request->filled('cara_perolehan')) {
+            $cp = strtoupper(trim($request->cara_perolehan));
+            if ($cp === 'DAK') {
+                $query->where('cara_perolehan', 'ilike', '%DAK%');
+            } elseif ($cp === 'APBD') {
+                $query->where('cara_perolehan', 'ilike', '%APBD%');
+            } elseif ($cp === 'APBN') {
+                $query->where(function ($q) {
+                    $q->where('cara_perolehan', 'ilike', '%APBN%')
+                      ->orWhere('cara_perolehan', 'ilike', '%HIBAH%');
+                });
+            } elseif ($cp === 'MUTASI') {
+                $query->where('cara_perolehan', 'ilike', '%MUTASI%');
+            } elseif ($cp === 'BLUD') {
+                $query->where('cara_perolehan', 'ilike', '%BLUD%');
+            } elseif ($cp === 'LAINNYA') {
+                $query->where(function ($q) {
+                    $q->whereNull('cara_perolehan')
+                      ->orWhere('cara_perolehan', '=', '')
+                      ->orWhere(function ($sub) {
+                          $sub->where('cara_perolehan', 'not ilike', '%DAK%')
+                              ->where('cara_perolehan', 'not ilike', '%APBD%')
+                              ->where('cara_perolehan', 'not ilike', '%APBN%')
+                              ->where('cara_perolehan', 'not ilike', '%HIBAH%')
+                              ->where('cara_perolehan', 'not ilike', '%MUTASI%')
+                              ->where('cara_perolehan', 'not ilike', '%BLUD%');
+                      });
+                });
+            } else {
+                $query->where('cara_perolehan', 'ilike', "%{$request->cara_perolehan}%");
+            }
         }
 
         if ($request->filled('ruangan_id')) {
@@ -94,7 +143,16 @@ class AlkesController extends Controller
         $kondisis = $this->getKondisiOptions(true);
         $statuses = $this->getStatusOptions();
 
-        return view('alkes.index', compact('alkesList', 'ruanganList', 'kondisis', 'statuses', 'sortBy', 'sortDir'));
+        $sumberOptions = [
+            'DAK' => 'DAK (Dana Alokasi Khusus)',
+            'APBD' => 'APBD Provinsi Kepri',
+            'APBN' => 'APBN / Hibah',
+            'BLUD' => 'BLUD Operasional RS',
+            'MUTASI' => 'Mutasi Antar Unit',
+            'LAINNYA' => 'Lainnya / Belum Tercatat',
+        ];
+
+        return view('alkes.index', compact('alkesList', 'ruanganList', 'kondisis', 'statuses', 'sortBy', 'sortDir', 'sumberOptions'));
     }
 
     public function show($id)

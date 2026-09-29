@@ -105,7 +105,7 @@
                 <input type="hidden" name="sort_dir" value="{{ request('sort_dir') }}">
             @endif
 
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div>
                     <label class="block text-xs font-bold text-slate-800 mb-1.5">Ruangan Pemilik Aset</label>
                     <select id="selectRuangan" name="ruangan_id" class="w-full">
@@ -139,7 +139,59 @@
                         @endforeach
                     </select>
                 </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-800 mb-1.5">Sumber Pengadaan</label>
+                    <select id="selectCaraPerolehan" name="cara_perolehan" class="w-full">
+                        <option value="">-- Semua Sumber Pengadaan --</option>
+                        @foreach ($sumberOptions as $optVal => $optLabel)
+                            <option value="{{ $optVal }}" {{ strtoupper(request('cara_perolehan', '')) === strtoupper($optVal) ? 'selected' : '' }}>{{ $optLabel }}</option>
+                        @endforeach
+                    </select>
+                </div>
             </div>
+
+            @php
+                $hasActiveFilters = request()->hasAny(['search', 'ruangan_id', 'lokasi_ruangan_id', 'kondisi', 'cara_perolehan']);
+            @endphp
+            @if ($hasActiveFilters)
+                <div class="flex items-center gap-2 flex-wrap pt-3 border-t border-slate-100 text-xs">
+                    <span class="font-bold text-slate-500">Filter Aktif:</span>
+                    @if (request('search'))
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 font-semibold">
+                            <span>Pencarian: "{{ request('search') }}"</span>
+                            <a href="{{ route('alkes.index', request()->except('search')) }}" class="text-emerald-600 hover:text-rose-600 font-bold ml-0.5" title="Hapus filter pencarian">&times;</a>
+                        </span>
+                    @endif
+                    @if ($selectedRuanganObj)
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-teal-50 text-teal-800 border border-teal-200 font-semibold">
+                            <span>Pemilik: {{ $selectedRuanganObj->nama_ruangan }}</span>
+                            <a href="{{ route('alkes.index', request()->except('ruangan_id')) }}" class="text-teal-600 hover:text-rose-600 font-bold ml-0.5" title="Hapus filter ruangan pemilik">&times;</a>
+                        </span>
+                    @endif
+                    @if (request('lokasi_ruangan_id'))
+                        @php $lokasiObj = $ruanganList->firstWhere('id', request('lokasi_ruangan_id')); @endphp
+                        @if ($lokasiObj)
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50 text-blue-800 border border-blue-200 font-semibold">
+                                <span>Lokasi: {{ $lokasiObj->nama_ruangan }}</span>
+                                <a href="{{ route('alkes.index', request()->except('lokasi_ruangan_id')) }}" class="text-blue-600 hover:text-rose-600 font-bold ml-0.5" title="Hapus filter lokasi">&times;</a>
+                            </span>
+                        @endif
+                    @endif
+                    @if (request('kondisi'))
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-50 text-amber-800 border border-amber-200 font-semibold">
+                            <span>Kondisi: {{ strtoupper(request('kondisi')) }}</span>
+                            <a href="{{ route('alkes.index', request()->except('kondisi')) }}" class="text-amber-600 hover:text-rose-600 font-bold ml-0.5" title="Hapus filter kondisi">&times;</a>
+                        </span>
+                    @endif
+                    @if (request('cara_perolehan'))
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-800 border border-indigo-200 font-semibold">
+                            <span>Sumber: {{ $sumberOptions[strtoupper(request('cara_perolehan'))] ?? request('cara_perolehan') }}</span>
+                            <a href="{{ route('alkes.index', request()->except('cara_perolehan')) }}" class="text-indigo-600 hover:text-rose-600 font-bold ml-0.5" title="Hapus filter sumber pengadaan">&times;</a>
+                        </span>
+                    @endif
+                </div>
+            @endif
 
             <div class="flex items-center gap-3 justify-end pt-3 border-t border-slate-200">
                 <a href="{{ route('alkes.index') }}" class="h-10 px-5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs rounded-xl border border-slate-300 transition flex items-center justify-center gap-1.5 shrink-0">

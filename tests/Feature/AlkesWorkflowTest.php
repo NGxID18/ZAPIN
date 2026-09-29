@@ -213,5 +213,56 @@ class AlkesWorkflowTest extends TestCase
         // Cleanup
         $alkes->forceDelete();
     }
+
+    public function test_cara_perolehan_filter_and_dashboard_links(): void
+    {
+        $dashRes = $this->withSession([
+            'user_role' => 'elektromedis',
+            'user_role_label' => 'Instalasi Elektromedis',
+            'user_ruangan_id' => 1,
+            'user_ruangan_name' => 'Elektromedis',
+        ])->get('/');
+
+        $dashRes->assertStatus(200);
+        $dashRes->assertSee('cara_perolehan=DAK');
+        $dashRes->assertSee('cara_perolehan=APBD');
+
+        // Test filtering cara_perolehan=DAK
+        $filterRes = $this->withSession([
+            'user_role' => 'elektromedis',
+            'user_role_label' => 'Instalasi Elektromedis',
+            'user_ruangan_id' => 1,
+            'user_ruangan_name' => 'Elektromedis',
+        ])->get('/alkes?cara_perolehan=DAK');
+
+        $filterRes->assertStatus(200);
+        $filterRes->assertSee('Sumber Pengadaan');
+        $filterRes->assertSee('DAK (Dana Alokasi Khusus)');
+        
+        $alkesList = $filterRes->viewData('alkesList');
+        $this->assertEquals(40, $alkesList->total());
+
+        // Verify none of the returned items have cara_perolehan that is not DAK
+        foreach ($alkesList as $item) {
+            $this->assertStringContainsStringIgnoringCase('DAK', (string) $item->cara_perolehan);
+        }
+    }
+
+    public function test_search_dak_avoids_false_positives(): void
+    {
+        $searchRes = $this->withSession([
+            'user_role' => 'elektromedis',
+            'user_role_label' => 'Instalasi Elektromedis',
+            'user_ruangan_id' => 1,
+            'user_ruangan_name' => 'Elektromedis',
+        ])->get('/alkes?search=DAK');
+
+        $searchRes->assertStatus(200);
+        $alkesList = $searchRes->viewData('alkesList');
+        
+        // Searching 'DAK' should not return items with only 'TIDAK TERDATA' or 'Tindakan'
+        $this->assertEquals(40, $alkesList->total());
+    }
 }
+
 

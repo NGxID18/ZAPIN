@@ -148,7 +148,7 @@
             <!-- Sumber Pengadaan List (7 Kolom) -->
             <div class="lg:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-3">
                 @foreach ($sumberStats as $key => $s)
-                    <a href="{{ $s['query'] ? route('alkes.index', ['search' => $s['query']]) : route('alkes.index') }}" 
+                    <a href="{{ route('alkes.index', ['cara_perolehan' => $key]) }}" 
                        class="p-3.5 rounded-xl border border-slate-200/80 hover:border-teal-500 hover:shadow-sm transition bg-slate-50/70 hover:bg-white group flex flex-col justify-between"
                        title="Lihat alat kesehatan dari sumber {{ $s['label'] }}">
                         <div class="flex items-center justify-between gap-2">
