@@ -35,6 +35,9 @@ class AlkesWorkflowTest extends TestCase
         $response->assertStatus(200);
         $response->assertSee('ZAPIN');
         $response->assertSee('Total Unit Alkes');
+        $response->assertSee('Total Valuasi Aset');
+        $response->assertSee('Komposisi Portofolio Sumber Perolehan');
+        $response->assertSee('Top 5 Aset Bernilai Tertinggi');
     }
 
     public function test_alkes_index_accessible_with_session(): void
