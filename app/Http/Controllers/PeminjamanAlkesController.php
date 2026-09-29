@@ -6,7 +6,6 @@ use App\Models\ActivityLog;
 use App\Models\Alkes;
 use App\Models\PeminjamanAlkes;
 use App\Models\Ruangan;
-use App\Services\GoogleSheetSyncService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -59,8 +58,7 @@ class PeminjamanAlkesController extends Controller
             $validated['ruangan_peminjam_id'] = (int) session('user_ruangan_id');
         }
 
-        $alkes = null;
-        DB::transaction(function () use ($validated, &$alkes) {
+        DB::transaction(function () use ($validated) {
             $alkes = Alkes::where('id', $validated['alkes_id'])->lockForUpdate()->firstOrFail();
 
             if ($alkes->status !== 'Tersedia') {
@@ -91,23 +89,19 @@ class PeminjamanAlkesController extends Controller
             );
         });
 
-        if ($alkes) {
-            app(GoogleSheetSyncService::class)->pushUpdateToSheet($alkes->fresh());
-        }
-
         return redirect()->route('peminjaman.index')->with('success', 'Peminjaman alat berhasil dicatat.');
     }
 
     public function kembalikan(Request $request, $id)
     {
-        $alkes = null;
-        DB::transaction(function () use ($id, &$alkes) {
+        DB::transaction(function () use ($id) {
             $peminjaman = PeminjamanAlkes::where('id', $id)->lockForUpdate()->firstOrFail();
 
             if ($peminjaman->status === 'Dikembalikan') {
                 abort(422, 'Peminjaman alat ini sudah dikembalikan sebelumnya.');
             }
 
+            // Validasi Otorisasi Pengembalian: Elektromedis, Ruang Peminjam, atau Pemilik Aset
             $userRole = session('user_role');
             $userRuanganId = (int) session('user_ruangan_id');
             if ($userRole === 'ruangan' && $userRuanganId) {
@@ -138,10 +132,6 @@ class PeminjamanAlkesController extends Controller
                 );
             }
         });
-
-        if ($alkes) {
-            app(GoogleSheetSyncService::class)->pushUpdateToSheet($alkes->fresh());
-        }
 
         return redirect()->route('peminjaman.index')->with('success', 'Alat kesehatan berhasil ditandai telah dikembalikan ke ruangan asal.');
     }

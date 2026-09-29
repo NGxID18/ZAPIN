@@ -321,33 +321,6 @@ class AlkesController extends Controller
         ]);
     }
 
-    public function exportSheetData(Request $request, GoogleSheetSyncService $syncService)
-    {
-        $incomingSecret = (string) ($request->header('X-Zapin-Secret') ?? $request->query('secret') ?? $request->input('secret') ?? '');
-        $expectedSecret = (string) config('zapin.api_key');
-
-        if (empty($expectedSecret) || !hash_equals($expectedSecret, $incomingSecret)) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Unauthorized: Kunci API rahasia tidak valid.',
-            ], 401);
-        }
-
-        $alkesList = Alkes::with(['ruangan', 'lokasiRuangan'])
-            ->orderBy('no_urut', 'asc')
-            ->get();
-
-        $data = $alkesList->map(function ($alkes) use ($syncService) {
-            return $syncService->formatAlkesPayload($alkes);
-        });
-
-        return response()->json([
-            'status' => 'success',
-            'total' => $data->count(),
-            'data' => $data,
-        ]);
-    }
-
     public function destroy($id, GoogleSheetSyncService $syncService)
     {
         $alkes = Alkes::findOrFail($id);

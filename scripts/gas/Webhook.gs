@@ -1,3 +1,7 @@
+/**
+ * Handler Webhook HTTP (Website ZAPIN -> Google Spreadsheet).
+ */
+
 function doPost(e) {
   var lock = LockService.getScriptLock();
   try {
@@ -11,6 +15,7 @@ function doPost(e) {
     var sheet = getTargetSheet();
     var lastRow = sheet.getLastRow();
 
+    // Aksi hapus baris dari spreadsheet jika alkes dihapus dari website
     if (json.action === 'delete_row') {
       var delNo = parseInt(json.no_urut, 10);
       if (isNaN(delNo)) {
@@ -36,6 +41,7 @@ function doPost(e) {
       return jsonResponse({ status: 'not_found', message: 'No. urut ' + delNo + ' tidak ditemukan di Google Spreadsheet.' });
     }
     
+    // Aksi pembaruan batch beberapa baris sekaligus
     if (json.action === 'batch_update_rows' && Array.isArray(json.items)) {
       var results = [];
       PropertiesService.getScriptProperties().setProperty('IS_SYNCING', 'true');
@@ -52,6 +58,7 @@ function doPost(e) {
       });
     }
 
+    // Aksi menata ulang seluruh nomor urut dari 1 sampai akhir baris
     if (json.action === 'renumber_all_rows') {
       var numRows = lastRow - CONFIG.DATA_START_ROW + 1;
       if (numRows > 0) {
@@ -97,6 +104,9 @@ function doPost(e) {
   }
 }
 
+/**
+ * Helper untuk menulis atau memperbarui satu baris data alkes di spreadsheet.
+ */
 function writeOrUpdateSingleRow(sheet, alkesData) {
   var lastRow = sheet.getLastRow();
   var targetNoUrut = parseInt(alkesData.no_urut, 10);
@@ -153,3 +163,4 @@ function doGet() {
     timestamp: new Date().toISOString()
   });
 }
+
