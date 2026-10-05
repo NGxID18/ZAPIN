@@ -16,5 +16,8 @@ abstract class TestCase extends BaseTestCase
         if (!is_dir('/tmp/zapin_views')) {
             @mkdir('/tmp/zapin_views', 0777, true);
         }
+        config(['view.compiled' => '/tmp/zapin_views']);
+        $this->app->forgetInstance('blade.compiler');
+        $this->withoutMiddleware(\Illuminate\Routing\Middleware\ThrottleRequests::class);
     }
 }

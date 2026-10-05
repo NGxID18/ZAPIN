@@ -26,13 +26,24 @@ class KalibrasiController extends Controller
             $query->where('ruangan_id', $request->ruangan_id);
         }
 
+        $todayStr = now()->toDateString();
+        $in7Days = now()->addDays(7)->toDateString();
+        $in30Days = now()->addDays(30)->toDateString();
+
         if ($request->filled('status_kalibrasi')) {
             $status = $request->status_kalibrasi;
             if ($status === 'TERKALIBRASI') {
                 $query->where('status_kalibrasi', 'SUDAH DIKALIBRASI');
             } elseif ($status === 'EXPIRED') {
                 $query->whereNotNull('tanggal_kalibrasi_berikutnya')
-                      ->where('tanggal_kalibrasi_berikutnya', '<', now()->toDateString());
+                      ->where('tanggal_kalibrasi_berikutnya', '<', $todayStr);
+            } elseif ($status === 'H-7') {
+                $query->whereNotNull('tanggal_kalibrasi_berikutnya')
+                      ->whereBetween('tanggal_kalibrasi_berikutnya', [$todayStr, $in7Days]);
+            } elseif ($status === 'H-30') {
+                $query->whereNotNull('tanggal_kalibrasi_berikutnya')
+                      ->where('tanggal_kalibrasi_berikutnya', '>', $in7Days)
+                      ->where('tanggal_kalibrasi_berikutnya', '<=', $in30Days);
             } elseif ($status === 'BELUM') {
                 $query->where('status_kalibrasi', '!=', 'SUDAH DIKALIBRASI');
             }
@@ -46,7 +57,14 @@ class KalibrasiController extends Controller
         $totalAlkes = Alkes::count();
         $totalTerkalibrasi = Alkes::where('status_kalibrasi', 'SUDAH DIKALIBRASI')->count();
         $totalExpired = Alkes::whereNotNull('tanggal_kalibrasi_berikutnya')
-            ->where('tanggal_kalibrasi_berikutnya', '<', now()->toDateString())
+            ->where('tanggal_kalibrasi_berikutnya', '<', $todayStr)
+            ->count();
+        $totalH7 = Alkes::whereNotNull('tanggal_kalibrasi_berikutnya')
+            ->whereBetween('tanggal_kalibrasi_berikutnya', [$todayStr, $in7Days])
+            ->count();
+        $totalH30 = Alkes::whereNotNull('tanggal_kalibrasi_berikutnya')
+            ->where('tanggal_kalibrasi_berikutnya', '>', $in7Days)
+            ->where('tanggal_kalibrasi_berikutnya', '<=', $in30Days)
             ->count();
         $totalBelum = Alkes::where('status_kalibrasi', '!=', 'SUDAH DIKALIBRASI')->count();
 
@@ -56,6 +74,8 @@ class KalibrasiController extends Controller
             'totalAlkes',
             'totalTerkalibrasi',
             'totalExpired',
+            'totalH7',
+            'totalH30',
             'totalBelum'
         ));
     }
@@ -103,6 +123,14 @@ class KalibrasiController extends Controller
         unset($validated['sertifikat_pdf']);
 
         $alkes->update($validated);
+
+        // Segera periksa status EWS dan perbarui notifikasi untuk tanggal baru
+        try {
+            \Illuminate\Support\Facades\Cache::forget('ews_auto_check_throttle');
+            app(\App\Services\EarlyWarningService::class)->checkAndGenerateNotifications();
+        } catch (\Throwable $e) {
+            // Abaikan jika ada kendala non-kritis
+        }
 
         ActivityLog::record(
             'Update Kalibrasi',

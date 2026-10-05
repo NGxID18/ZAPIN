@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Models\ActivityLog;
 use App\Models\Alkes;
+use App\Services\EarlyWarningService;
 use Illuminate\Console\Command;
 
 class CheckKalibrasiEwsCommand extends Command
@@ -20,69 +21,50 @@ class CheckKalibrasiEwsCommand extends Command
      *
      * @var string
      */
-    protected $description = 'Pengecekan Early Warning System (EWS) kalibrasi alkes untuk H-30, H-7, dan unit yang telah kadaluarsa';
+    protected $description = 'Pengecekan Early Warning System (EWS) kalibrasi alkes untuk H-30, H-7, dan unit yang telah kadaluarsa serta penerbitan notifikasi ke elektromedis';
 
     /**
      * Execute the console command.
      */
-    public function handle(): int
+    public function handle(EarlyWarningService $ewsService): int
     {
         $this->info('Memulai pengecekan Early Warning System (EWS) Kalibrasi Alkes...');
+
+        $result = $ewsService->checkAndGenerateNotifications();
 
         $today = now()->toDateString();
         $in30Days = now()->addDays(30)->toDateString();
         $in7Days = now()->addDays(7)->toDateString();
 
-        // 1. Alkes yang telah expired
-        $expiredList = Alkes::with('ruangan')
-            ->whereNotNull('tanggal_kalibrasi_berikutnya')
+        $countExpired = Alkes::whereNotNull('tanggal_kalibrasi_berikutnya')
             ->where('tanggal_kalibrasi_berikutnya', '<', $today)
-            ->orderBy('tanggal_kalibrasi_berikutnya', 'asc')
-            ->get();
+            ->count();
 
-        // 2. Alkes yang jatuh tempo dalam H-7
-        $h7List = Alkes::with('ruangan')
-            ->whereNotNull('tanggal_kalibrasi_berikutnya')
+        $countH7 = Alkes::whereNotNull('tanggal_kalibrasi_berikutnya')
             ->whereBetween('tanggal_kalibrasi_berikutnya', [$today, $in7Days])
-            ->orderBy('tanggal_kalibrasi_berikutnya', 'asc')
-            ->get();
+            ->count();
 
-        // 3. Alkes yang jatuh tempo dalam H-30 (tetapi di luar H-7)
-        $h30List = Alkes::with('ruangan')
-            ->whereNotNull('tanggal_kalibrasi_berikutnya')
+        $countH30 = Alkes::whereNotNull('tanggal_kalibrasi_berikutnya')
             ->where('tanggal_kalibrasi_berikutnya', '>', $in7Days)
             ->where('tanggal_kalibrasi_berikutnya', '<=', $in30Days)
-            ->orderBy('tanggal_kalibrasi_berikutnya', 'asc')
-            ->get();
-
-        $countExpired = $expiredList->count();
-        $countH7 = $h7List->count();
-        $countH30 = $h30List->count();
+            ->count();
 
         $this->newLine();
         $this->table(
-            ['Kategori Peringatan EWS', 'Jumlah Unit'],
+            ['Kategori Peringatan EWS', 'Jumlah Alkes Aktif', 'Notifikasi Baru Dibuat'],
             [
-                ['Expired (Masa Kalibrasi Habis)', $countExpired],
-                ['Kritis H-7 (Jatuh tempo <= 7 Hari)', $countH7],
-                ['Peringatan H-30 (Jatuh tempo 8 - 30 Hari)', $countH30],
+                ['Expired (Masa Kalibrasi Habis)', $countExpired, $result['expired_created']],
+                ['Kritis H-7 (Jatuh tempo <= 7 Hari)', $countH7, $result['h7_created']],
+                ['Peringatan H-30 (Jatuh tempo 8 - 30 Hari)', $countH30, $result['h30_created']],
             ]
         );
 
-        if ($countExpired > 0 || $countH7 > 0 || $countH30 > 0) {
-            $desc = "EWS Kalibrasi: Terdeteksi {$countExpired} unit expired, {$countH7} unit H-7, dan {$countH30} unit H-30.";
-            ActivityLog::record(
-                'EWS Kalibrasi Otomatis',
-                $desc,
-                'Instalasi Elektromedis',
-                'Sistem EWS'
-            );
-            $this->info("Peringatan EWS berhasil dicatat ke Activity Log.");
+        if ($result['total_created'] > 0) {
+            $this->info("Berhasil menerbitkan {$result['total_created']} notifikasi baru untuk Instalasi Elektromedis.");
         } else {
-            $this->info('Seluruh alat kesehatan dalam kondisi kalibrasi valid. Tidak ada peringatan mendesak.');
+            $this->info("Tidak ada notifikasi baru yang perlu diterbitkan (semua notifikasi aktif telah tersinkronisasi).");
         }
 
         return Command::SUCCESS;
     }
 }
-

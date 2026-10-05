@@ -199,19 +199,38 @@
                         <div class="max-h-80 overflow-y-auto divide-y divide-slate-100 scrollbar-thin">
                             @forelse ($recentNotifs as $n)
                                 <div class="p-3.5 hover:bg-slate-50 transition {{ !$n->dibaca ? 'bg-amber-50/60' : '' }}">
-                                    <div class="flex items-center justify-between gap-2">
-                                        <span class="font-bold text-xs text-slate-900 truncate">{{ $n->judul }}</span>
-                                        <span class="text-[10px] text-slate-500 shrink-0 font-medium">{{ $n->created_at->diffForHumans() }}</span>
+                                    <div class="flex items-start justify-between gap-2">
+                                        <div class="flex items-center gap-1.5 flex-wrap">
+                                            @if (!empty($n->stage))
+                                                <span class="px-1.5 py-0.5 rounded text-[10px] font-black border {{ $n->badgeClasses ?? 'bg-amber-100 text-amber-900 border-amber-300' }}">
+                                                    {{ $n->stage }}
+                                                </span>
+                                            @endif
+                                            <span class="font-bold text-xs text-slate-900 line-clamp-1">{{ $n->judul }}</span>
+                                        </div>
+                                        <span class="text-[10px] text-slate-500 shrink-0 font-medium">{{ \Carbon\Carbon::parse($n->created_at)->diffForHumans() }}</span>
                                     </div>
                                     <p class="text-xs text-slate-700 mt-1 leading-relaxed">{{ $n->pesan }}</p>
+                                    @if (!empty($n->url))
+                                        <div class="mt-1.5 text-right">
+                                            <a href="{{ $n->url }}" class="text-[11px] font-bold text-emerald-700 hover:text-emerald-900 inline-flex items-center gap-1">
+                                                Lihat Data &rarr;
+                                            </a>
+                                        </div>
+                                    @endif
                                 </div>
                             @empty
-                                <p class="text-xs text-slate-500 text-center py-8 font-medium">Belum ada notifikasi laporan perbaikan.</p>
+                                <p class="text-xs text-slate-500 text-center py-8 font-medium">Belum ada notifikasi baru.</p>
                             @endforelse
                         </div>
 
-                        <div class="p-3 bg-slate-50 border-t border-slate-100 text-center">
-                            <a href="{{ route('pemeliharaan.index') }}" class="text-xs font-bold text-emerald-700 hover:text-emerald-900">Lihat Semua Laporan &rarr;</a>
+                        <div class="p-2.5 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-xs px-4">
+                            <a href="{{ route('kalibrasi.index') }}" class="font-bold text-teal-700 hover:text-teal-900">
+                                Jadwal Kalibrasi &rarr;
+                            </a>
+                            <a href="{{ route('pemeliharaan.index') }}" class="font-bold text-emerald-700 hover:text-emerald-900">
+                                Laporan Perbaikan &rarr;
+                            </a>
                         </div>
                     </div>
                 </div>

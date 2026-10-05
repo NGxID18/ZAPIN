@@ -69,6 +69,42 @@
         </div>
     </div>
 
+    @if (($totalH7 ?? 0) > 0 || ($totalH30 ?? 0) > 0)
+        <div class="p-4 rounded-2xl bg-gradient-to-r from-amber-50 to-rose-50 border border-amber-300 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-fade-in">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-rose-600 text-white flex items-center justify-center text-xl shrink-0 animate-pulse">
+                    <i class="ri-alarm-warning-line"></i>
+                </div>
+                <div>
+                    <h4 class="font-extrabold text-slate-900 text-sm flex items-center gap-2 flex-wrap">
+                        Early Warning System (EWS) Kalibrasi Aktif
+                        @if (($totalH7 ?? 0) > 0)
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-600 text-white animate-bounce">{{ $totalH7 }} Unit Kritis (H-7)</span>
+                        @endif
+                        @if (($totalH30 ?? 0) > 0)
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-500 text-white">{{ $totalH30 }} Unit Peringatan (H-30)</span>
+                        @endif
+                    </h4>
+                    <p class="text-xs text-slate-600 mt-0.5 font-medium">
+                        Terdapat alkes yang mendekati tenggat masa uji kalibrasi. Notifikasi dua tahap (H-30 dan H-7) otomatis diterbitkan untuk elektromedis.
+                    </p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+                @if (($totalH7 ?? 0) > 0)
+                    <a href="{{ route('kalibrasi.index', ['status_kalibrasi' => 'H-7']) }}" class="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition shadow-xs">
+                        Lihat H-7 ({{ $totalH7 }})
+                    </a>
+                @endif
+                @if (($totalH30 ?? 0) > 0)
+                    <a href="{{ route('kalibrasi.index', ['status_kalibrasi' => 'H-30']) }}" class="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-bold transition shadow-xs">
+                        Lihat H-30 ({{ $totalH30 }})
+                    </a>
+                @endif
+            </div>
+        </div>
+    @endif
+
     <div class="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-sm">
         <form method="GET" action="{{ route('kalibrasi.index') }}" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-4 items-end">
             <div class="lg:col-span-5">
@@ -94,6 +130,8 @@
                 <select name="status_kalibrasi" class="w-full">
                     <option value="">-- Semua Status --</option>
                     <option value="TERKALIBRASI" {{ request('status_kalibrasi') == 'TERKALIBRASI' ? 'selected' : '' }}>Terkalibrasi (Aktif)</option>
+                    <option value="H-7" {{ request('status_kalibrasi') == 'H-7' ? 'selected' : '' }}>EWS Kritis: H-7 (&le; 7 Hari)</option>
+                    <option value="H-30" {{ request('status_kalibrasi') == 'H-30' ? 'selected' : '' }}>EWS Peringatan: H-30 (8 - 30 Hari)</option>
                     <option value="EXPIRED" {{ request('status_kalibrasi') == 'EXPIRED' ? 'selected' : '' }}>Kadaluarsa / Expired</option>
                     <option value="BELUM" {{ request('status_kalibrasi') == 'BELUM' ? 'selected' : '' }}>Belum Pernah Dikalibrasi</option>
                 </select>
@@ -171,10 +209,32 @@
 
                             <td class="py-3.5 px-4 border-r border-slate-200">
                                 @if ($tglBerikutnya)
-                                    <span class="text-xs font-bold flex items-center gap-1.5 {{ $isExpired ? 'text-rose-700' : 'text-slate-900' }}">
-                                        <i class="ri-calendar-event-line {{ $isExpired ? 'text-rose-600' : 'text-amber-600' }}"></i>
-                                        {{ $tglBerikutnya->format('d/m/Y') }}
-                                    </span>
+                                    @php
+                                        $daysLeft = (int) $today->diffInDays($tglBerikutnya, false);
+                                    @endphp
+                                    <div class="space-y-1">
+                                        <span class="text-xs font-bold flex items-center gap-1.5 {{ $daysLeft < 0 ? 'text-rose-700' : ($daysLeft <= 7 ? 'text-rose-700 font-extrabold' : ($daysLeft <= 30 ? 'text-amber-800' : 'text-slate-900')) }}">
+                                            <i class="ri-calendar-event-line {{ $daysLeft < 0 ? 'text-rose-600' : ($daysLeft <= 7 ? 'text-rose-600' : ($daysLeft <= 30 ? 'text-amber-600' : 'text-emerald-600')) }}"></i>
+                                            {{ $tglBerikutnya->format('d/m/Y') }}
+                                        </span>
+                                        @if ($daysLeft < 0)
+                                            <span class="px-2 py-0.5 rounded text-[10px] font-black bg-rose-100 text-rose-800 border border-rose-300 inline-block">
+                                                Kadaluarsa ({{ abs($daysLeft) }} hr lalu)
+                                            </span>
+                                        @elseif ($daysLeft <= 7)
+                                            <span class="px-2 py-0.5 rounded text-[10px] font-black bg-rose-600 text-white border border-rose-700 inline-block animate-pulse">
+                                                EWS H-7 ({{ $daysLeft }} hr lagi)
+                                            </span>
+                                        @elseif ($daysLeft <= 30)
+                                            <span class="px-2 py-0.5 rounded text-[10px] font-black bg-amber-100 text-amber-900 border border-amber-300 inline-block">
+                                                EWS H-30 ({{ $daysLeft }} hr lagi)
+                                            </span>
+                                        @else
+                                            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 inline-block">
+                                                Valid ({{ $daysLeft }} hr)
+                                            </span>
+                                        @endif
+                                    </div>
                                 @else
                                     <span class="text-xs text-slate-400 italic">Belum Dijadwalkan</span>
                                 @endif

@@ -161,8 +161,12 @@ class LogPemeliharaanController extends Controller
         return redirect()->route('pemeliharaan.index')->with('success', 'Perbaikan alkes berhasil ditandai selesai dan unit kembali beroperasi normal.');
     }
 
-    public function markNotificationsRead()
+    public function markNotificationsRead(Request $request, \App\Services\EarlyWarningService $ewsService)
     {
-        return response()->json(['status' => 'success']);
+        $count = $ewsService->markAllAsRead('elektromedis');
+        if ($request->wantsJson()) {
+            return response()->json(['status' => 'success', 'marked' => $count]);
+        }
+        return redirect()->back()->with('success', 'Semua notifikasi berhasil ditandai telah dibaca.');
     }
 }
